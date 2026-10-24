@@ -15,6 +15,8 @@ Lượt Windows chọn riêng `windows-x64` vẫn chạy quality trên cả hai 
 
 [Lượt push 40076810720](https://github.com/binhnt149/load-research/actions/runs/40076810720) của commit `0d43dda` (timeout/tài liệu) bị GitHub chặn **trước khi khởi động cả hai quality job**, với thông báo tài khoản có payment thất bại hoặc cần tăng spending limit. Không có step hay test nào được thực thi trong lượt đó. Chủ tài khoản cần kiểm tra Billing & plans để chạy các lượt mới (E04). Các kết quả 152/152 test và native smoke ở bảng trên đã hoàn tất trước tình trạng này; mã ứng dụng không đổi trong commit timeout/tài liệu.
 
+**Cập nhật khi tiếp tục release:** chạy lại [40077587587, attempt 2](https://github.com/binhnt149/load-research/actions/runs/40077587587/attempts/2) đã **success** trên cả Windows/macOS với đủ quality gates. E04 đã hoàn tất; không có thay đổi Billing trong repository hoặc qua công cụ. Quá trình chuẩn bị/phát hành `0.1.1` được ghi tiếp tại [báo cáo phiên bản](release-0.1.1.md).
+
 ## Kiểm tra tại máy phát triển
 
 - **152/152 pytest pass**, không fail/error/skip; lượt cuối 24,69 giây sau khi GitHub chặn khởi động job mới do Billing. Ruff/mypy/actionlint cũng chạy lại và đạt; không sửa hoặc bỏ test.

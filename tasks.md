@@ -52,7 +52,7 @@ Spec: `load-research.md`. Kế hoạch: `tasks/plan.md`. `[x]` chỉ có nghĩa 
 - [ ] **E01 — Xác nhận adapter bằng tệp CMIS/MDMS thực.** Phụ thuộc: tệp/ngữ nghĩa do đơn vị cung cấp. Nghiệm thu: mapping/kênh/hệ số/kỳ được xác nhận; UAT có đối soát.
 - [ ] **E02 — AC-23 trên máy sạch Windows và macOS.** Phụ thuộc: môi trường đích/CPU và bộ cài. Nghiệm thu: cài/chạy/nhập/tính/xuất không cần Python trên cả hai OS.
 - [ ] **E03 — AC-24 quy mô đầy đủ và UAT.** Phụ thuộc: benchmark 122,64 triệu giá trị, điều kiện máy được chốt và đánh giá chuyên viên. Nghiệm thu: số đo thật so mục tiêu spec; không thay bằng benchmark nhỏ.
-- [ ] **E04 — Tài khoản GitHub cho phép khởi động Actions mới.** Phụ thuộc: Billing & plans của chủ tài khoản. Nghiệm thu: GitHub khởi động được job và chạy lại quality gates. Lượt 40076810720 bị chặn trước khi chạy vì thông báo payment/spending limit; hai native job và 152/152 test mỗi OS ở các lượt trước đã đạt.
+- [x] **E04 — Tài khoản GitHub cho phép khởi động Actions mới.** Phụ thuộc: Billing & plans của chủ tài khoản. Nghiệm thu: GitHub khởi động được job và chạy lại quality gates. Verify: lượt 40077587587 attempt 2 ngày 24/10/2026 success; cả hai quality job chạy đầy đủ test/lint/type/audit/build. Thông báo payment/spending limit ở các lượt trước được giữ trong báo cáo lịch sử.
 
 ## Tự động hoá phát hành
 
@@ -62,6 +62,8 @@ Spec: `load-research.md`. Kế hoạch: `tasks/plan.md`. `[x]` chỉ có nghĩa 
 - [x] **T26b — Module nhập động trong native bundle.** Phụ thuộc: T26. Nghiệm thu: đóng gói FFT/linalg trong NumPy compatibility vendored của SciPy/scikit-learn và backend SVG của Matplotlib; bật cloudpickle compatibility; native smoke demo/xuất đạt. Verify: lỗi FFT thực trong lượt 40062858984 và SVG trong lượt 40066254619 → job macOS 120801141496 success, CLI demo/XLSX/PNG/SVG và tạo DMG đều đạt; đã tải DMG, `hdiutil verify` VALID. Xác nhận native Windows thuộc T26c.
 - [x] **T26c — Compiler Windows và build riêng từng nền tảng.** Phụ thuộc: T26. Nghiệm thu: tránh lỗi MSVC C1002 khi biên dịch SciPy bằng Clang-cl từ Visual Studio, native smoke demo/XLSX/PNG/SVG và ZIP đạt; cho chọn all/macOS/Windows trong lượt thủ công, push tag vẫn build đủ hai nền tảng trước publish. Verify: Red C1002 trong lượt 40069789873 → Green lượt 40071949110; log compiler clang-cl, smoke/ZIP/upload success. Actionlint, dry-run và review đạt; quality vẫn đủ hai OS khi chọn riêng Windows.
 - [x] **T27 — Hướng dẫn và kiểm chứng.** Phụ thuộc: T26. Nghiệm thu: tài liệu tag/chạy thử/tải artifact; full suite pass không skip, cập nhật trạng thái CI và push workflow lên GitHub. Verify: full suite cuối 152/152 không skip; Ruff/mypy/actionlint pass; DMG verify VALID, ZIP 1.374 entry CRC pass; helper asset và 7/7 SHA-256 OK; review không có Required/Critical. Xem docs/verification/actions.md. E01/E02/E03/E04 giữ điều kiện nghiệm thu riêng; CI mới bị Billing chặn đã ghi rõ.
+
+- [ ] **T28 — Phát hành thử nghiệm 0.1.1.** Phụ thuộc: T27/E04. Nghiệm thu: metadata/tag đồng nhất; toàn bộ test, lint/type/audit đạt; cùng lượt tag build và smoke cả hai native, publish đủ asset cùng SHA256SUMS; tải lại và xác minh checksum. Local 152/152 pass, Ruff/mypy/build wheel đạt; chờ CI/tag/native/publish. Giữ các điều kiện E01/E02/E03 riêng. Bằng chứng: docs/verification/release-0.1.1.md.
 
 ## Nhật ký kiểm chứng
 

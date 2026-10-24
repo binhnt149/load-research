@@ -4,9 +4,9 @@
 
 Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kết quả kiểm chứng: [docs/verification/final.md](docs/verification/final.md).
 
-## Bản phát hành 0.1.0
+## Bản phát hành 0.1.1
 
-[GitHub Release v0.1.0](https://github.com/binhnt149/load-research/releases/tag/v0.1.0) là bản **thử nghiệm**, cung cấp mã nguồn và Python wheel. Cần Python 3.12 cùng các thư viện phụ thuộc; bộ cài độc lập `.exe`/`.app` chưa được phát hành. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.0.md), [changelog](CHANGELOG.md).
+Bản **thử nghiệm** `0.1.1` bổ sung DMG macOS Apple Silicon và ZIP portable Windows x64, cùng Python wheel. [GitHub Release v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) được tạo khi workflow tag hoàn tất mọi gate. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.1.md), [changelog](CHANGELOG.md). Các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
 
 ## Chạy từ mã nguồn
 
