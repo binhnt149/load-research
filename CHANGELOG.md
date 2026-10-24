@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Giao diện sáng với màu nhấn xanh, font hệ thống lớn hơn và bố cục bốn nhóm nguồn trong hai cột; đường dẫn đầy đủ giữ ở tooltip, các thao tác vẫn dùng đúng tệp gốc.
+- Bổ sung mẫu CMIS, MDMS dài và rộng 24/48/96 chu kỳ, thương phẩm và lịch; lưu CSV/XLSX từ từng nhóm nguồn, kèm hướng dẫn cột và dữ liệu minh hoạ, không ghi đè tệp có sẵn.
+- Sửa nút xem trước không phản hồi sau khi thêm tệp; tự chọn tệp hiện tại, hỗ trợ double-click, chọn sheet/dấu phân cách, đọc lại và hiển thị lỗi hoặc bảng chỉ có tiêu đề rõ ràng.
+
 ## 0.1.1 — 2026-10-24
 
 Bản thử nghiệm bổ sung gói native macOS Apple Silicon và Windows x64, cùng bản sửa sao lưu trên Windows.

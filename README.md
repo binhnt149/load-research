@@ -8,6 +8,16 @@
 
 [GitHub Release v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) đã cung cấp DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel. Workflow tag đạt mọi quality/native/publish gate. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.1.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
 
+## Giao diện và tệp mẫu trong mã nguồn hiện tại
+
+Tab **Dữ liệu** có bốn nhóm nguồn trong hai cột, font hệ thống lớn hơn và màu nhấn xanh. Tên tệp hiển thị ngắn gọn; di chuột để xem đường dẫn đầy đủ. Phần sheet/dấu phân cách/ánh xạ CMIS, thương phẩm và lịch nằm trong **Thiết lập cột & định dạng…**.
+
+Mỗi nhóm có **Tệp mẫu…** để xem ví dụ, hướng dẫn từng cột và lưu CSV/XLSX. Có mẫu CMIS, MDMS dài/rộng 24/48/96, thương phẩm và lịch; xem [bộ mẫu và lưu ý](templates/README.md). Thay toàn bộ dữ liệu minh hoạ bằng dữ liệu thực trước khi nghiên cứu.
+
+Sau **Thêm tệp…**, tệp mới được chọn sẵn. Bấm **Xem trước…** hoặc double-click để xem tối đa 50 dòng đầu; có chọn sheet Excel, đổi dấu phân cách CSV và **Đọc lại**. Các thiết lập tại đây chỉ dùng để xem, cần khai báo tương ứng cho nguồn trước khi chạy. Hộp xem trước báo lỗi rõ, hỗ trợ tệp chỉ có tiêu đề và giữ nguyên mã có số 0 đầu.
+
+Ảnh và kết quả kiểm chứng: [giao diện/đầu vào](docs/verification/ui-inputs.md).
+
 ## Chạy từ mã nguồn
 
 Dùng Python **3.12** và thư mục dự án có quyền ghi. Các phiên bản trong `requirements.lock` đã qua CI trên Windows x64 và macOS Apple Silicon. Việc cài/chạy bản native trên máy người dùng không có Python vẫn cần xác nhận E02; xem [bằng chứng CI](docs/verification/actions.md).
