@@ -1,6 +1,6 @@
 # Build và kiểm thử Desktop
 
-Gói Python wheel được build/kiểm chứng riêng với bản native không cần Python. Hiện chưa có bộ cài đã xác nhận trên máy sạch Windows/macOS; E02 còn mở. Ma trận OS/CPU tối thiểu và ký bộ cài chưa được đơn vị chốt. Môi trường đã thực chạy là macOS 26.4.1/arm64, Python 3.12; không suy ra hỗ trợ Intel hoặc Windows từ kết quả đó.
+Gói Python wheel được build/kiểm chứng riêng với bản native không cần Python. Hiện chưa có bộ cài đã xác nhận trên máy người dùng không cài Python; E02 còn mở. Ma trận OS/CPU tối thiểu và ký bộ cài chưa được đơn vị chốt. Đã chạy Cocoa desktop trên macOS 26.4.1/arm64 và source test suite trên CI macOS 15/arm64, Windows Server 2022/x64; chưa xác nhận Mac Intel hoặc Windows desktop sạch.
 
 ## Wheel
 
@@ -51,13 +51,13 @@ Trên **từng artifact native và từng máy sạch**: mở không có Python,
 
 Thứ tự: quality cả hai OS → native cả hai OS → publish. Một gate lỗi sẽ chặn publish. Không bỏ/skip test để phát hành. Lượt full-year benchmark không nằm trong CI; E01/E02/E03 vẫn có điều kiện nghiệm thu riêng.
 
-Compiler cache được tách theo OS/CPU và dependency lock, ghim action cache bằng SHA; lưu sau compile, kể cả khi smoke sau đó lỗi. Cache không thay thế các quality/smoke gate. Spec khai báo rõ NumPy compatibility vendored của SciPy/scikit-learn vì chúng nhập FFT/linalg bằng tên động, đồng thời bật `dill-compat` cho cloudpickle.
+Compiler cache được tách theo OS/CPU và dependency lock, ghim action cache bằng SHA; lưu sau compile, kể cả khi smoke sau đó lỗi. Cache không thay thế các quality/smoke gate. Spec khai báo rõ NumPy compatibility vendored của SciPy/scikit-learn vì chúng nhập FFT/linalg bằng tên động, backend SVG được Matplotlib nhập khi xuất hình, đồng thời bật `dill-compat` cho cloudpickle.
 
 Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`. Sau khi hoàn tất, tải `release-macos-arm64`, `release-windows-x64` hoặc `release-wheel` trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 90 phút; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
 
 Để phát hành phiên bản tiếp theo, ví dụ `0.1.1`:
 
-1. Sửa version đồng nhất trong `pyproject.toml` và `src/load_research/__init__.py`; cập nhật changelog/ghi chú liên quan.
+1. Sửa version đồng nhất trong `pyproject.toml` và `src/load_research/__init__.py`; cập nhật assertion version trong `tests/unit/test_package.py` cùng changelog/ghi chú liên quan.
 2. Commit và push `main`, kiểm tra CI đạt.
 3. Tạo tag mới trỏ commit đó:
 

@@ -10,7 +10,7 @@
 
 ## Chạy từ mã nguồn
 
-Dùng Python **3.12** và thư mục dự án có quyền ghi. Các phiên bản trong `requirements.lock` đã chạy trên macOS Apple Silicon; việc cài trên Windows/máy sạch vẫn cần xác nhận E02, không coi lock này là bằng chứng đa nền tảng.
+Dùng Python **3.12** và thư mục dự án có quyền ghi. Các phiên bản trong `requirements.lock` đã qua CI trên Windows x64 và macOS Apple Silicon. Việc cài/chạy bản native trên máy người dùng không có Python vẫn cần xác nhận E02; xem [bằng chứng CI](docs/verification/actions.md).
 
 macOS:
 
