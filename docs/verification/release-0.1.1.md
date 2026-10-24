@@ -1,12 +1,18 @@
 # Kiểm chứng phát hành 0.1.1
 
-Ngày: 24/10/2026. Trạng thái: đang chuẩn bị bản thử nghiệm, chưa tạo tag.
+Ngày: 24/10/2026. Trạng thái: [prerelease v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) đã công bố lúc 09:55:24 UTC; tải lại và kiểm tra asset đạt. T28 hoàn tất.
 
 - Chạy lại quality của commit `8237c93`: [lượt 40077587587, attempt 2](https://github.com/binhnt149/load-research/actions/runs/40077587587/attempts/2) **success**. macOS đạt trong 1 phút 29 giây, Windows trong 3 phút 46 giây; test/lint/type/audit/build đều đạt. E04 được đóng bằng bằng chứng này, không thay đổi thiết lập Billing.
 - Baseline tại máy phát triển: 152/152 pytest pass, không skip, trong 20,93 giây.
 - Red: đổi assertion phiên bản thành `0.1.1` trước khi sửa metadata; test thất bại đúng chênh lệch `0.1.0`/`0.1.1`. Sau đó cập nhật đồng nhất `pyproject.toml` và package init; giữ nguyên `METHOD_VERSION`.
 - Green: toàn bộ **152/152 pytest pass** trong 20,77 giây; JUnit không fail/error/skip. Ruff lint/format (71 file), mypy (36 module), kiểm tra metadata/tag `v0.1.1` đều đạt. Wheel `load_research-0.1.1-py3-none-any.whl` build thành công; metadata/init cùng ghi `0.1.1`, CRC archive đạt.
 - Review diff chỉ đổi metadata/assertion phiên bản và tài liệu; không sửa phương pháp, schema, dependency lock hoặc hạ gate. Không có Required/Critical.
-- Chờ CI trên main, sau đó mới đẩy tag và xác nhận native/publish/checksum của cùng lượt tag. Không sử dụng lại asset của bản `0.1.0`.
+- Commit phát hành: `e904e32453d183fee473e6144956859e46f90f55`. [CI main 40082274051](https://github.com/binhnt149/load-research/actions/runs/40082274051) **success**; JUnit tải lại xác nhận macOS **152/152** trong 42,203 giây và Windows **152/152** trong 49,027 giây, không fail/error/skip. Audit 72 dependency mỗi OS: 0 lỗ hổng đã biết. Ruff/mypy/build wheel đạt trên cả hai OS.
+- Tag annotated `v0.1.1` trỏ đúng commit trên, metadata/tag trùng `0.1.1`. [Lượt release 40082527303](https://github.com/binhnt149/load-research/actions/runs/40082527303) đã đạt quality gates trên cả hai OS. JUnit tải lại: macOS **152/152** trong 45,048 giây; Windows **152/152** trong 52,930 giây, không fail/error/skip. Audit 72 dependency mỗi OS: 0 lỗ hổng đã biết. Metadata/tag, Ruff/mypy và build wheel đều đạt.
+- [Native macOS 120839377869](https://github.com/binhnt149/load-research/actions/runs/40082527303/job/120839377869) **success**: compile 09:39:14–09:49:22 UTC, native smoke 17 giây, DMG/upload đạt. [Native Windows 120839377882](https://github.com/binhnt149/load-research/actions/runs/40082527303/job/120839377882) **success**: compile 09:39:43–09:54:27 UTC, native smoke 9 giây, ZIP/upload đạt. Audit công cụ build đạt trên cả hai OS.
+- [Publish 120842642167](https://github.com/binhnt149/load-research/actions/runs/40082527303/job/120842642167) **success**. Release không phải draft, có cờ prerelease, đủ 8 asset gồm 7 tệp được hash và `SHA256SUMS`. Cả hai native và wheel lấy từ chính lượt tag 40082527303 tại `e904e32`; không sử dụng lại asset của bản `0.1.0`.
+- Đã tải đủ 8 asset từ Release. `shasum -a 256 -c SHA256SUMS`: **7/7 OK**; digest của chính manifest khớp GitHub API (`966405004dbba169ba38f22ffabcf126569a690b50f0f9c1fa7fa09c67c0763d`). [Bản sao manifest đã phát hành](../releases/v0.1.1-SHA256SUMS) giữ nguyên nội dung để đối chiếu.
+- DMG có 185.072.252 byte; `hdiutil verify` xác nhận checksum **VALID**. ZIP Windows có 174.905.814 byte, 1.374 entry, đúng `LoadResearch.dist/launcher.exe`, không có đường dẫn tuyệt đối/traversal; CRC toàn bộ đạt. Wheel có metadata/init `0.1.1`, CRC đạt.
+- Hai báo cáo native đều có `status=passed`, `pipeline_status=completed`, XLSX/PNG/SVG `true`. Checksum binary/manifest đối chiếu khớp metadata API của Release. Toàn lượt tag có kết luận **success**; không hạ gate hoặc bỏ test để phát hành.
 
 E01/E02/E03 giữ nguyên điều kiện nghiệm thu trong [tasks.md](../../tasks.md). Xem [ghi chú phát hành](../releases/v0.1.1.md) để biết cách chạy thử và khôi phục từ bản sao lưu.

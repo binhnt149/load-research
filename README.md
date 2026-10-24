@@ -2,11 +2,11 @@
 
 Ứng dụng nghiên cứu phụ tải cục bộ theo **ngành × năm-tháng × loại ngày**, từ tập mẫu đã chốt. Có biểu đồ chung, thành phần hành vi, chuẩn hoá Q/U/V, suy rộng theo thương phẩm và xuất 24/48 chu kỳ bằng kW/kWh. Ứng dụng không gửi dữ liệu lên mạng.
 
-Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kết quả kiểm chứng: [docs/verification/final.md](docs/verification/final.md).
+Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kết quả kiểm chứng bản hiện tại: [release 0.1.1](docs/verification/release-0.1.1.md).
 
 ## Bản phát hành 0.1.1
 
-Bản **thử nghiệm** `0.1.1` bổ sung DMG macOS Apple Silicon và ZIP portable Windows x64, cùng Python wheel. [GitHub Release v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) được tạo khi workflow tag hoàn tất mọi gate. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.1.md), [changelog](CHANGELOG.md). Các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
+[GitHub Release v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) đã cung cấp DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel. Workflow tag đạt mọi quality/native/publish gate. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.1.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
 
 ## Chạy từ mã nguồn
 

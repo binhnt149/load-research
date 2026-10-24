@@ -2,18 +2,20 @@
 
 Ngày: 24/10/2026. Workflow: [CI and desktop release](../../.github/workflows/release.yml).
 
-## Kết quả xác nhận
+**Cập nhật phát hành:** [lượt tag v0.1.1 40082527303](https://github.com/binhnt149/load-research/actions/runs/40082527303) đã **success**, gồm quality, hai native job và publish. [Prerelease v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) đã có DMG/ZIP/wheel cùng báo cáo smoke, lock và SHA256SUMS. Xem [kiểm chứng 0.1.1](release-0.1.1.md) cho bằng chứng của cùng lượt tag; phần dưới giữ lịch sử giai đoạn thiết lập workflow.
+
+## Kết quả xác nhận trước đợt phát hành 0.1.1
 
 | Nền tảng | Full suite | Native CLI, xuất báo cáo và đóng gói |
 |---|---|---|
 | macOS 15 arm64 | 152/152 pass, không skip | [Job thành công](https://github.com/binhnt149/load-research/actions/runs/40069789873/job/120801141496): demo, XLSX/PNG/SVG, DMG và upload |
 | Windows Server 2022 x64 | 152/152 pass, không skip | [Lượt thành công](https://github.com/binhnt149/load-research/actions/runs/40071949110): Clang-cl, demo, XLSX/PNG/SVG, ZIP và upload |
 
-Lượt Windows chọn riêng `windows-x64` vẫn chạy quality trên cả hai OS. Job publish được **skipped** đúng thiết kế cho workflow_dispatch; chưa tạo tag hay release mới.
+Lượt Windows chọn riêng `windows-x64` vẫn chạy quality trên cả hai OS. Job publish được **skipped** đúng thiết kế cho workflow_dispatch; các lượt thủ công không tạo Release.
 
-### Hạn chế tài khoản Actions sau kiểm chứng native
+### Hạn chế tài khoản Actions sau kiểm chứng native (đã khôi phục)
 
-[Lượt push 40076810720](https://github.com/binhnt149/load-research/actions/runs/40076810720) của commit `0d43dda` (timeout/tài liệu) bị GitHub chặn **trước khi khởi động cả hai quality job**, với thông báo tài khoản có payment thất bại hoặc cần tăng spending limit. Không có step hay test nào được thực thi trong lượt đó. Chủ tài khoản cần kiểm tra Billing & plans để chạy các lượt mới (E04). Các kết quả 152/152 test và native smoke ở bảng trên đã hoàn tất trước tình trạng này; mã ứng dụng không đổi trong commit timeout/tài liệu.
+[Lượt push 40076810720](https://github.com/binhnt149/load-research/actions/runs/40076810720) của commit `0d43dda` (timeout/tài liệu) bị GitHub chặn **trước khi khởi động cả hai quality job**, với thông báo tài khoản có payment thất bại hoặc cần tăng spending limit. Không có step hay test nào được thực thi trong lượt đó. E04 được mở khi ấy để theo dõi khả năng chạy job mới. Các kết quả 152/152 test và native smoke ở bảng trên đã hoàn tất trước tình trạng này; mã ứng dụng không đổi trong commit timeout/tài liệu.
 
 **Cập nhật khi tiếp tục release:** chạy lại [40077587587, attempt 2](https://github.com/binhnt149/load-research/actions/runs/40077587587/attempts/2) đã **success** trên cả Windows/macOS với đủ quality gates. E04 đã hoàn tất; không có thay đổi Billing trong repository hoặc qua công cụ. Quá trình chuẩn bị/phát hành `0.1.1` được ghi tiếp tại [báo cáo phiên bản](release-0.1.1.md).
 
@@ -59,4 +61,4 @@ macOS được kiểm chứng ở `7468340`, Windows ở `3a08e4b`; khác biệt
 
 Review độc lập cuối không có Required/Critical. T27 hoàn tất bằng kiểm tra cục bộ, các lượt hosted đã đạt, kiểm tra artifact và tài liệu; khả năng chạy thêm job của tài khoản được theo dõi riêng ở E04.
 
-Lượt thủ công không công bố Release. Tag/release `v0.1.0` được giữ nguyên; chưa tạo tag phiên bản mới. Các test native CLI không thay UAT giao diện trên máy sạch hoặc nghiệm thu dữ liệu thực/quy mô đủ năm (E01/E02/E03).
+Lượt thủ công không công bố Release. Tag/release `v0.1.0` được giữ nguyên; bản tiếp theo `v0.1.1` được phát hành bằng lượt push tag riêng nêu ở đầu báo cáo. Các test native CLI không thay UAT giao diện trên máy sạch hoặc nghiệm thu dữ liệu thực/quy mô đủ năm (E01/E02/E03).
