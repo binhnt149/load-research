@@ -40,19 +40,23 @@ class TemplateDialog(QDialog):
         self.guidance.setTextFormat(Qt.TextFormat.PlainText)
         self.guidance.setWordWrap(True)
         layout.addWidget(self.guidance)
-        tabs = QTabWidget()
+        tabs = self.tabs = QTabWidget()
         self.example_model, self.field_model = RecordsModel(self), RecordsModel(self)
+        self.example_table, self.field_table = QTableView(), QTableView()
         for name, model in (
             ("Dữ liệu minh hoạ", self.example_model),
             ("Hướng dẫn từng cột", self.field_model),
         ):
-            table = QTableView()
+            table = (
+                self.example_table if model is self.example_model else self.field_table
+            )
             table.setModel(model)
             table.setAlternatingRowColors(True)
             table.horizontalHeader().setDefaultSectionSize(
                 165 if model is self.example_model else 460
             )
             tabs.addTab(table, name)
+        self.field_table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(tabs, 1)
         self.status = QLabel()
         self.status.setTextFormat(Qt.TextFormat.PlainText)
@@ -68,6 +72,7 @@ class TemplateDialog(QDialog):
         buttons.addWidget(self.save_button)
         buttons.addStretch()
         close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        close.button(QDialogButtonBox.StandardButton.Close).setText("Đóng")
         close.rejected.connect(self.reject)
         buttons.addWidget(close)
         layout.addLayout(buttons)
@@ -78,12 +83,18 @@ class TemplateDialog(QDialog):
         template = TEMPLATES[self.selector.currentData()]
         self.guidance.setText(f"{NOTICE}\n{template.guidance}")
         self.example_model.set_records([dict(row) for row in template.examples])
+        self.example_table.resizeColumnsToContents()
+        for index in range(len(template.columns)):
+            width = self.example_table.columnWidth(index)
+            self.example_table.setColumnWidth(index, min(320, max(110, width)))
         self.field_model.set_records(
             [
                 {"Trường": name, "Hướng dẫn": template.column_help(name)}
                 for name in template.columns
             ]
         )
+        self.field_table.setColumnWidth(0, 220)
+        self.field_table.resizeRowsToContents()
         self.status.clear()
 
     def save_template(self) -> None:

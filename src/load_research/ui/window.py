@@ -26,29 +26,8 @@ from load_research.application.models import StudyRequest, load_request
 from load_research.ui.forms import ExportDialog, ResearchForm
 from load_research.ui.inspection import DayInspectionDialog
 from load_research.ui.results import ResultsView
+from load_research.ui.theme import apply_theme
 from load_research.workspace import Workspace, atomic_json
-
-STYLESHEET = """
-QMainWindow { background: #F4F7F6; }
-QWidget { font-size: 13px; color: #213B3A; }
-QLabel#heading { font-size: 25px; font-weight: 700; color: #143E3B; }
-QPushButton { padding: 7px 13px; border: 1px solid #BECFC9; border-radius: 5px; background: white; }
-QPushButton:hover { background: #E5F0EB; }
-QPushButton:disabled { color: #84948E; background: #EBEFED; }
-QPushButton#primary { color: white; background: #17695F; border-color: #17695F; font-weight: 600; }
-QPushButton#primary:disabled { background: #91AFA6; }
-QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox { padding: 5px; background: white; border: 1px solid #C5D3CD; border-radius: 4px; }
-QGroupBox { font-weight: 600; border: 1px solid #CFDBD5; border-radius: 6px; margin-top: 12px; padding: 12px 8px 6px; }
-QGroupBox::title { subcontrol-origin: margin; left: 12px; }
-QTabWidget::pane { border: 1px solid #CFDBD5; background: white; }
-QTabBar::tab { padding: 10px 18px; background: #E7EFEB; }
-QTabBar::tab:selected { background: white; border-top: 3px solid #17695F; }
-QTableView, QListWidget, QPlainTextEdit { background: white; border: 1px solid #D5DFDA; }
-QHeaderView::section { background: #E5EFEB; padding: 6px; border: 0; }
-QProgressBar { background: #E5EFEB; border: 1px solid #C5D3CD; border-radius: 4px; text-align: center; }
-QProgressBar::chunk { background: #17695F; border-radius: 3px; }
-QTableCornerButton::section { background: #E5EFEB; border: 0; }
-"""
 
 
 def scroll(widget: QWidget) -> QScrollArea:
@@ -65,7 +44,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Load Research · Nghiên cứu phụ tải")
         self.resize(1240, 860)
-        self.setStyleSheet(STYLESHEET)
+        apply_theme(self)
         self.workspace: Workspace | None = None
         self.job: ResearchJob | None = None
         self.current_result: dict | None = None
@@ -73,6 +52,8 @@ class MainWindow(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(8)
         title = QLabel("Nghiên cứu phụ tải")
         title.setObjectName("heading")
         layout.addWidget(title)
@@ -93,6 +74,7 @@ class MainWindow(QMainWindow):
             button.clicked.connect(callback)
             project_bar.addWidget(button)
         self.project_label = QLabel("Chưa mở dự án")
+        self.project_label.setObjectName("hint")
         project_bar.addWidget(self.project_label, 1)
         layout.addLayout(project_bar)
         self.form = ResearchForm()
@@ -143,6 +125,8 @@ class MainWindow(QMainWindow):
         self.progress.setRange(0, 100)
         self.status_label = QLabel("Sẵn sàng · mở hoặc tạo dự án để bắt đầu")
         self.status_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.status_label.setObjectName("hint")
+        self.status_label.setWordWrap(True)
         self.project_label.setTextFormat(Qt.TextFormat.PlainText)
         controls.addWidget(self.start_button)
         controls.addWidget(self.cancel_button)
@@ -159,7 +143,8 @@ class MainWindow(QMainWindow):
                 "finish or cancel the active job before switching projects"
             )
         self.workspace = Workspace.open(path)
-        self.project_label.setText(str(self.workspace.root))
+        self.project_label.setText(f"Dự án: {self.workspace.root.name}")
+        self.project_label.setToolTip(str(self.workspace.root))
         self.start_button.setEnabled(True)
         self.refresh_history()
         if self.workspace.list_runs():

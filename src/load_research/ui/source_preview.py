@@ -97,6 +97,7 @@ class SourcePreviewDialog(QDialog):
         note.setObjectName("hint")
         layout.addWidget(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText("Đóng")
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
         self.reload_button.clicked.connect(self.reload)

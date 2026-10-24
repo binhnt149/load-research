@@ -3,7 +3,6 @@
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -89,7 +88,7 @@ class ResultsView(QWidget):
         layout.addWidget(self.comparison_label)
         splitter = QSplitter(Qt.Orientation.Vertical)
         self.canvas = FigureCanvasQTAgg(Figure(figsize=(10, 4)))
-        self.canvas.setMinimumHeight(250)
+        self.canvas.setMinimumHeight(180)
         splitter.addWidget(self.canvas)
         tabs = QTabWidget()
         (
@@ -114,11 +113,6 @@ class ResultsView(QWidget):
             view.setModel(model)
             view.setSortingEnabled(True)
             view.setAlternatingRowColors(True)
-            palette = view.palette()
-            palette.setColor(QPalette.ColorRole.Base, QColor("white"))
-            palette.setColor(QPalette.ColorRole.Window, QColor("white"))
-            palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#F4F7F6"))
-            view.setPalette(palette)
             view.viewport().setAutoFillBackground(True)
             view.horizontalHeader().setResizeContentsPrecision(50)
             view.horizontalHeader().setSectionResizeMode(
@@ -311,6 +305,12 @@ class ResultsView(QWidget):
             cluster_ids=(self.group.currentData(),) if self.group.currentData() else (),
             run_id=self.result["run_id"],
         )
+        if normalization is None:
+            figure.axes[0].set_ylabel(
+                "Công suất\ntrung bình (kW)"
+                if unit == "kW"
+                else "Điện năng\nmỗi chu kỳ (kWh)"
+            )
         old = self.canvas.figure
         self.canvas.figure = figure
         figure.set_canvas(self.canvas)

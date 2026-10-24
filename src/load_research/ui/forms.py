@@ -12,16 +12,19 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
     QTableWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -97,8 +100,13 @@ class FileList(QGroupBox):
     def __init__(self, title: str) -> None:
         super().__init__(title)
         layout = QVBoxLayout(self)
+        self.summary = QLabel()
+        self.summary.setObjectName("hint")
+        self.summary.setWordWrap(True)
+        layout.addWidget(self.summary)
         self.list = QListWidget()
-        self.list.setMaximumHeight(86)
+        self.list.setAccessibleName(title)
+        self.list.setMaximumHeight(64)
         self.list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         layout.addWidget(self.list)
         buttons = QHBoxLayout()
@@ -109,7 +117,9 @@ class FileList(QGroupBox):
         self.preview_button = QPushButton("Xem trước…")
         self.preview_button.clicked.connect(self.preview_current)
         self.list.itemDoubleClicked.connect(
-            lambda item: self.preview_requested.emit(item.text())
+            lambda item: self.preview_requested.emit(
+                item.data(Qt.ItemDataRole.UserRole)
+            )
         )
         self.list.currentItemChanged.connect(self.update_buttons)
         self.list.itemSelectionChanged.connect(self.update_buttons)
@@ -127,17 +137,37 @@ class FileList(QGroupBox):
     def update_buttons(self, *_args) -> None:
         self.preview_button.setEnabled(self.list.currentItem() is not None)
         self.remove_button.setEnabled(bool(self.list.selectedItems()))
+        count = self.list.count()
+        self.summary.setText(
+            f"{count} tệp đã thêm · double-click để xem trước"
+            if count
+            else "Chưa có tệp · chọn Thêm tệp để bắt đầu"
+        )
+
+    def current_path(self) -> str | None:
+        item = self.list.currentItem()
+        return item.data(Qt.ItemDataRole.UserRole) if item else None
 
     def preview_current(self) -> None:
-        if item := self.list.currentItem():
-            self.preview_requested.emit(item.text())
+        if path := self.current_path():
+            self.preview_requested.emit(path)
 
     def paths(self) -> tuple[str, ...]:
-        return tuple(self.list.item(index).text() for index in range(self.list.count()))
+        return tuple(
+            self.list.item(index).data(Qt.ItemDataRole.UserRole)
+            for index in range(self.list.count())
+        )
+
+    def add_paths(self, paths) -> None:
+        for path in paths:
+            item = QListWidgetItem(Path(path).name)
+            item.setData(Qt.ItemDataRole.UserRole, str(path))
+            item.setToolTip(str(path))
+            self.list.addItem(item)
 
     def set_paths(self, paths) -> None:
         self.list.clear()
-        self.list.addItems(list(dict.fromkeys(str(path) for path in paths)))
+        self.add_paths(dict.fromkeys(str(path) for path in paths))
         if self.list.count():
             self.list.setCurrentRow(0)
         self.update_buttons()
@@ -148,7 +178,7 @@ class FileList(QGroupBox):
         )
         existing = set(self.paths())
         added = list(dict.fromkeys(path for path in paths if path not in existing))
-        self.list.addItems(added)
+        self.add_paths(added)
         if added:
             self.list.setCurrentRow(self.list.count() - 1)
 
@@ -447,6 +477,7 @@ class SourceDialog(QDialog):
 class ConfigForm(QWidget):
     def __init__(self) -> None:
         super().__init__()
+        self.setObjectName("configForm")
         self.base = RunConfig(periods=("2026-01",), scope="NPC")
         layout = QFormLayout(self)
         self.scope, self.periods = QLineEdit(), QLineEdit()
@@ -589,12 +620,18 @@ class ConfigForm(QWidget):
 class ResearchForm(QWidget):
     def __init__(self) -> None:
         super().__init__()
+        self.setObjectName("researchForm")
         self.base_calendar = ResearchCalendar()
         self.source_options: dict[str, SourceOptions] = {}
         self.cmis_mapping: dict[str, str] = {}
         self.billing_mapping: dict[str, str] = {}
         self.selected_industries: tuple[str, ...] = ()
         layout = QVBoxLayout(self)
+        sources = QGridLayout()
+        sources.setHorizontalSpacing(16)
+        sources.setVerticalSpacing(12)
+        sources.setColumnStretch(0, 1)
+        sources.setColumnStretch(1, 1)
         self.cmis, self.mdms, self.billing, self.calendar_files = [
             FileList(title)
             for title in (
@@ -604,24 +641,50 @@ class ResearchForm(QWidget):
                 "4. Lịch ngày đặc biệt (tuỳ chọn)",
             )
         ]
-        for selector, category in zip(
-            (self.cmis, self.mdms, self.billing, self.calendar_files),
-            ("cmis", "mdms", "billing", "calendar"),
-            strict=True,
+        for index, (selector, category) in enumerate(
+            zip(
+                (self.cmis, self.mdms, self.billing, self.calendar_files),
+                ("cmis", "mdms", "billing", "calendar"),
+                strict=True,
+            )
         ):
-            layout.addWidget(selector)
+            sources.addWidget(selector, index // 2, index % 2)
             selector.preview_requested.connect(
                 lambda path, s=selector: self.preview_source(s, path)
             )
             selector.template_requested.connect(
                 lambda c=category: TemplateDialog(category=c, parent=self).exec()
             )
+        layout.addLayout(sources)
+        actions = QHBoxLayout()
         calendar_button = QPushButton("Điều chỉnh lịch trực tiếp…")
         calendar_button.clicked.connect(self.edit_calendar)
-        layout.addWidget(calendar_button)
-        source_button = QPushButton("Ngữ nghĩa / ánh xạ tệp MDMS đang chọn…")
+        source_button = QPushButton("Thiết lập ngữ nghĩa / ánh xạ MDMS đang chọn…")
         source_button.clicked.connect(self.edit_source)
-        layout.addWidget(source_button)
+        actions.addWidget(source_button)
+        actions.addWidget(calendar_button)
+        layout.addLayout(actions)
+        self.options_toggle = QToolButton()
+        self.options_toggle.setText(
+            "Thiết lập cột & định dạng CMIS / thương phẩm / lịch"
+        )
+        self.options_toggle.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
+        self.options_toggle.setArrowType(Qt.ArrowType.RightArrow)
+        self.options_toggle.setCheckable(True)
+        layout.addWidget(self.options_toggle)
+        advanced = QWidget()
+        advanced_layout = QVBoxLayout(advanced)
+        advanced_layout.setContentsMargins(0, 0, 0, 0)
+        self.options_toggle.toggled.connect(advanced.setVisible)
+        self.options_toggle.toggled.connect(
+            lambda checked: self.options_toggle.setArrowType(
+                Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow
+            )
+        )
+        advanced.hide()
+        layout.addWidget(advanced)
         self.cmis_sheet, self.billing_sheet, self.table_delimiter = (
             QLineEdit(),
             QLineEdit(),
@@ -631,7 +694,8 @@ class ResearchForm(QWidget):
         options.addRow("Sheet CMIS (trống: đầu tiên)", self.cmis_sheet)
         options.addRow("Sheet thương phẩm", self.billing_sheet)
         options.addRow("Dấu phân cách CMIS/thương phẩm/lịch", self.table_delimiter)
-        layout.addLayout(options)
+        advanced_layout.addLayout(options)
+        mapping_buttons = QHBoxLayout()
         for selector, fields, name, label in (
             (self.cmis, CMIS_FIELDS, "cmis_mapping", "Ánh xạ cột CMIS…"),
             (
@@ -647,12 +711,16 @@ class ResearchForm(QWidget):
                     self.edit_table_mapping(s, f, n)
                 )
             )
-            layout.addWidget(button)
+            mapping_buttons.addWidget(button)
+        advanced_layout.addLayout(mapping_buttons)
         note = QLabel(
-            "Mẫu mặc định MDMS: điện nhận kWh đã áp hệ số, 30 phút, dấu đầu chu kỳ. Hãy khai báo đúng nguồn trước khi chạy. Lịch nhập gồm date, day_type; các loại là weekday/saturday/sunday/holiday."
+            "MDMS: khai báo đúng đơn vị, chu kỳ và hệ số trước khi chạy. "
+            "Dùng “Tệp mẫu…” để xem cấu trúc đầu vào."
         )
         note.setWordWrap(True)
+        note.setObjectName("hint")
         layout.addWidget(note)
+        layout.addStretch(1)
         self.config_form = ConfigForm()
 
     def set_request(self, request: StudyRequest) -> None:
@@ -701,10 +769,9 @@ class ResearchForm(QWidget):
         )
 
     def edit_source(self) -> None:
-        item = self.mdms.list.currentItem()
-        if item is None:
+        path = self.mdms.current_path()
+        if path is None:
             return
-        path = item.text()
         dialog = SourceDialog(
             path,
             self.source_options.get(path, SourceOptions(values_already_scaled=True)),

@@ -82,6 +82,36 @@ def test_choosing_files_selects_the_new_file_and_preview_emits_its_path(
     assert signal.args == ["khách hàng.csv"]
 
 
+def test_file_names_are_readable_while_actions_keep_the_full_source_path(
+    qtbot, tmp_path
+):
+    selector = FileList("CMIS")
+    qtbot.addWidget(selector)
+    path = str(tmp_path / "khách hàng.csv")
+    selector.set_paths([path])
+    assert selector.list.currentItem().text() == "khách hàng.csv"
+    assert selector.list.currentItem().toolTip() == path
+    assert selector.paths() == (path,)
+    with qtbot.waitSignal(selector.preview_requested) as signal:
+        selector.preview_button.click()
+    assert signal.args == [path]
+
+
+def test_mdms_semantics_editor_receives_the_full_source_path(
+    qtbot, tmp_path, monkeypatch
+):
+    from load_research.ui.forms import ResearchForm, SourceDialog
+
+    form = ResearchForm()
+    qtbot.addWidget(form)
+    path = str(tmp_path / "source.csv")
+    form.mdms.set_paths([path])
+    seen = []
+    monkeypatch.setattr(SourceDialog, "exec", lambda dialog: seen.append(dialog.path))
+    form.edit_source()
+    assert seen == [path]
+
+
 def test_preview_button_state_follows_loading_and_removing_files(qtbot):
     selector = FileList("MDMS")
     qtbot.addWidget(selector)
