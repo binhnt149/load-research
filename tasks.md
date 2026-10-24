@@ -73,6 +73,8 @@ Spec: `load-research.md`. Kế hoạch: `tasks/plan.md`. `[x]` chỉ có nghĩa 
 - [x] **T32 — Giao diện hiện đại, dễ đọc.** Phụ thuộc: T29/T31. Nghiệm thu: nền sáng trung tính, chữ rõ và lớn hơn, màu nhấn xanh, phân cấp tiêu đề, trạng thái focus/disabled/selection dễ phân biệt; bố cục nguồn gọn, không cắt ở cửa sổ laptop. Verify: 188/188 test pass; Qt Cocoa/offscreen smoke tại 1240×860 và 1024×768, Tab focus và 11 ảnh trạng thái đã kiểm tra; các cặp màu chữ chính có tỷ lệ tương phản tối thiểu 5,34:1.
 - [x] **T33 — Review và kiểm chứng cuối.** Phụ thuộc: T30/T31/T32. Nghiệm thu: full suite pass 100%, không skip; Ruff/mypy/build wheel pass; tài liệu cách lấy template/xem trước và báo cáo kiểm chứng được cập nhật. Verify: 188/188 pass không skip; Ruff/mypy/build và wheel smoke ngoài checkout đạt; audit 72 dependency không có lỗ hổng đã biết; mutation giữ bảng cũ bị test phát hiện, source đã khôi phục; Qt Cocoa và ảnh runtime đã kiểm tra. Xem docs/verification/ui-inputs.md.
 
+- [ ] **T34 — Phát hành 0.1.2.** Phụ thuộc: T29–T33. Nghiệm thu: metadata/tag đồng nhất; full suite không fail/error/skip trên Windows/macOS; native smoke đạt trên cả hai OS; công bố DMG/ZIP/wheel cùng lock, báo cáo smoke và SHA256SUMS; tải lại kiểm tra checksum/định dạng. Verify: `docs/verification/release-0.1.2.md`.
+
 ## Nhật ký kiểm chứng
 
 Bằng chứng Red/Green thô theo task được giữ cục bộ tại `docs/verification/`. Repository chứa báo cáo tổng hợp và JUnit cuối đã bỏ hostname. Kết quả cuối cùng và việc chưa kiểm chứng được ghi trong `docs/verification/final.md`; không thay thế task ngoài môi trường bằng dấu `[x]`.
