@@ -2,6 +2,12 @@
 
 Tên cột dưới đây là tên chuẩn, có thể ánh xạ từ tên hệ thống. CSV UTF-8/BOM, dấu phân cách khai báo; MDMS có lựa chọn dấu thập phân và định dạng thời gian. ID là chuỗi; không ghép bằng tên. XLSX công thức phải có cached value, nếu không phải xuất lại thành giá trị. Parquet nên lưu ID kiểu string.
 
+## Tải mẫu và kiểm tra trước khi nhập
+
+Mỗi nhóm nguồn trong tab **Dữ liệu** có nút **Tệp mẫu…**, cho phép lưu CSV hoặc XLSX kèm hướng dẫn từng cột. Bộ CSV dùng từ mã nguồn nằm tại [templates/](../templates/README.md). Các dòng chỉ minh hoạ định dạng; thay toàn bộ trước khi nghiên cứu. Các dạng MDMS là lựa chọn thay thế, tránh nạp trùng số đo.
+
+Sau khi thêm tệp, tệp mới được chọn sẵn. Bấm **Xem trước…** hoặc double-click một tệp để xem tối đa 50 dòng đầu. Chọn sheet Excel hoặc dấu phân cách CSV rồi bấm **Đọc lại** khi cần; thiết lập trong cửa sổ này chỉ dùng để xem. Khai báo sheet/dấu phân cách tương ứng ở form nguồn trước khi chạy nghiên cứu. Tệp chỉ có tiêu đề vẫn hiện tên cột; tệp lỗi có thông báo và không giữ bảng xem trước cũ. Đây là xem nhanh, không thay thế kiểm tra toàn bộ nguồn khi chạy pipeline.
+
 ## Danh mục CMIS mẫu
 
 ```csv

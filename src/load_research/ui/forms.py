@@ -31,6 +31,7 @@ from load_research.calendar import ResearchCalendar
 from load_research.domain.config import RunConfig, SourceOptions
 from load_research.importers.tables import read_rows
 from load_research.ui.source_preview import SourcePreviewDialog
+from load_research.ui.template_dialog import TemplateDialog
 
 CMIS_FIELDS = [
     "customer_id",
@@ -91,6 +92,7 @@ def choose(widget: QComboBox, value: object) -> None:
 
 class FileList(QGroupBox):
     preview_requested = Signal(str)
+    template_requested = Signal()
 
     def __init__(self, title: str) -> None:
         super().__init__(title)
@@ -114,6 +116,9 @@ class FileList(QGroupBox):
         buttons.addWidget(self.add_button)
         buttons.addWidget(self.remove_button)
         buttons.addWidget(self.preview_button)
+        self.template_button = QPushButton("Tệp mẫu…")
+        self.template_button.clicked.connect(lambda: self.template_requested.emit())
+        buttons.addWidget(self.template_button)
         layout.addLayout(buttons)
         self.add_button.clicked.connect(self.select_files)
         self.remove_button.clicked.connect(self.remove_selected)
@@ -599,10 +604,17 @@ class ResearchForm(QWidget):
                 "4. Lịch ngày đặc biệt (tuỳ chọn)",
             )
         ]
-        for selector in (self.cmis, self.mdms, self.billing, self.calendar_files):
+        for selector, category in zip(
+            (self.cmis, self.mdms, self.billing, self.calendar_files),
+            ("cmis", "mdms", "billing", "calendar"),
+            strict=True,
+        ):
             layout.addWidget(selector)
             selector.preview_requested.connect(
                 lambda path, s=selector: self.preview_source(s, path)
+            )
+            selector.template_requested.connect(
+                lambda c=category: TemplateDialog(category=c, parent=self).exec()
             )
         calendar_button = QPushButton("Điều chỉnh lịch trực tiếp…")
         calendar_button.clicked.connect(self.edit_calendar)

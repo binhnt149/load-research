@@ -1,0 +1,3 @@
+﻿meter_id,date,source_quality_flag,unit,direction,interval_minutes,slot_01,slot_02,slot_03,slot_04,slot_05,slot_06,slot_07,slot_08,slot_09,slot_10,slot_11,slot_12,slot_13,slot_14,slot_15,slot_16,slot_17,slot_18,slot_19,slot_20,slot_21,slot_22,slot_23,slot_24
+M000001,2026-01-01,actual,kWh,import,60,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0
+M000002,2026-01-01,actual,kWh,import,60,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0,4.0

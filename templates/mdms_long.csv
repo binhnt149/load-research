@@ -1,0 +1,3 @@
+﻿meter_id,timestamp,value,source_quality_flag,unit,direction,interval_minutes
+M000001,2026-01-01T00:00:00,1,actual,kWh,import,30
+M000002,2026-01-01T00:00:00,2,actual,kWh,import,30
