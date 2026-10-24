@@ -1,9 +1,41 @@
+import sqlite3
+
 import pytest
 from test_pipeline import request_files
 
 from load_research.application.pipeline import run_study
 from load_research.backup import backup_project
 from load_research.workspace import Workspace
+
+
+@pytest.mark.parametrize("publication_fails", [False, True])
+def test_backup_closes_every_database_before_returning_or_failing(
+    tmp_path, monkeypatch, publication_fails
+):
+    workspace = Workspace.create(tmp_path / "project")
+    connect = sqlite3.connect
+    connections = []
+
+    def capture_connection(*args, **kwargs):
+        connection = connect(*args, **kwargs)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(sqlite3, "connect", capture_connection)
+    if publication_fails:
+
+        def reject_publication(*_args):
+            raise OSError("publication rejected")
+
+        monkeypatch.setattr("load_research.backup.os.rename", reject_publication)
+        with pytest.raises(OSError):
+            backup_project(workspace, tmp_path / "backup", include_sources=False)
+    else:
+        backup_project(workspace, tmp_path / "backup", include_sources=False)
+    assert connections
+    for connection in connections:
+        with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+            connection.execute("SELECT 1")
 
 
 def test_backup_can_verify_and_reuse_sources_after_original_files_are_removed(tmp_path):

@@ -5,6 +5,7 @@ import shutil
 import sqlite3
 import tempfile
 from collections.abc import Callable
+from contextlib import closing
 from pathlib import Path
 
 from load_research.workspace import Workspace, atomic_json, file_hash
@@ -74,9 +75,10 @@ def backup_project(
         (staging / "temp").mkdir(exist_ok=True)
         with (
             workspace.connection() as source_db,
-            sqlite3.connect(staging / "metadata.sqlite") as target_db,
+            closing(sqlite3.connect(staging / "metadata.sqlite")) as target_db,
         ):
-            source_db.backup(target_db)
+            with target_db:
+                source_db.backup(target_db)
         relocated = {}
         if include_sources:
             for checksum, source in sources.items():
