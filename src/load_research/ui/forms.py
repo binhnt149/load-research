@@ -106,38 +106,56 @@ class FileList(QGroupBox):
             QPushButton("Thêm tệp…"),
             QPushButton("Bỏ lựa chọn"),
         )
-        preview_button = QPushButton("Xem trước…")
-        preview_button.clicked.connect(
-            lambda: (
-                self.preview_requested.emit(self.list.currentItem().text())
-                if self.list.currentItem()
-                else None
-            )
+        self.preview_button = QPushButton("Xem trước…")
+        self.preview_button.clicked.connect(self.preview_current)
+        self.list.itemDoubleClicked.connect(
+            lambda item: self.preview_requested.emit(item.text())
         )
+        self.list.currentItemChanged.connect(self.update_buttons)
+        self.list.itemSelectionChanged.connect(self.update_buttons)
         buttons.addWidget(self.add_button)
         buttons.addWidget(self.remove_button)
-        buttons.addWidget(preview_button)
+        buttons.addWidget(self.preview_button)
         layout.addLayout(buttons)
         self.add_button.clicked.connect(self.select_files)
         self.remove_button.clicked.connect(self.remove_selected)
+        self.update_buttons()
+
+    def update_buttons(self, *_args) -> None:
+        self.preview_button.setEnabled(self.list.currentItem() is not None)
+        self.remove_button.setEnabled(bool(self.list.selectedItems()))
+
+    def preview_current(self) -> None:
+        if item := self.list.currentItem():
+            self.preview_requested.emit(item.text())
 
     def paths(self) -> tuple[str, ...]:
         return tuple(self.list.item(index).text() for index in range(self.list.count()))
 
     def set_paths(self, paths) -> None:
         self.list.clear()
-        self.list.addItems([str(path) for path in paths])
+        self.list.addItems(list(dict.fromkeys(str(path) for path in paths)))
+        if self.list.count():
+            self.list.setCurrentRow(0)
+        self.update_buttons()
 
     def select_files(self) -> None:
         paths, _filter = QFileDialog.getOpenFileNames(
             self, "Chọn tệp xuất hệ thống", "", "Dữ liệu (*.csv *.xlsx *.parquet)"
         )
         existing = set(self.paths())
-        self.list.addItems([path for path in paths if path not in existing])
+        added = list(dict.fromkeys(path for path in paths if path not in existing))
+        self.list.addItems(added)
+        if added:
+            self.list.setCurrentRow(self.list.count() - 1)
 
     def remove_selected(self) -> None:
+        row = self.list.currentRow()
         for item in self.list.selectedItems():
             self.list.takeItem(self.list.row(item))
+        if self.list.count():
+            self.list.setCurrentRow(min(max(row, 0), self.list.count() - 1))
+        self.update_buttons()
 
 
 class SourcePreviewDialog(QDialog):

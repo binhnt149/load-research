@@ -65,6 +65,14 @@ Spec: `load-research.md`. Kế hoạch: `tasks/plan.md`. `[x]` chỉ có nghĩa 
 
 - [x] **T28 — Phát hành thử nghiệm 0.1.1.** Phụ thuộc: T27/E04. Nghiệm thu: metadata/tag đồng nhất; toàn bộ test, lint/type/audit đạt; cùng lượt tag build và smoke cả hai native, publish đủ asset cùng SHA256SUMS; tải lại và xác minh checksum. Verify: local 152/152, CI main 40082274051 và lượt tag 40082527303 success; tag tại e904e32, 152/152 mỗi OS không skip, native/publish đạt. Release có đủ 8 asset; tải lại SHA-256 7/7 OK, DMG VALID, ZIP 1.374 entry CRC pass, wheel đúng version. Giữ các điều kiện E01/E02/E03 riêng. Bằng chứng: docs/verification/release-0.1.1.md.
 
+## Cải thiện giao diện và dữ liệu đầu vào
+
+- [x] **T29 — Sửa chọn tệp và kích hoạt xem trước.** Phụ thuộc: T28. Nghiệm thu: thêm/nạp tệp tự chọn được tệp hiện tại; nút xem trước chỉ bật khi có tệp; thêm trùng/huỷ/bỏ chọn không gây trạng thái im lặng; double-click mở xem trước. Verify: 4 regression Red→Green; 9/9 test source preview/workflow đạt.
+- [ ] **T30 — Xem trước có điều khiển và thông báo rõ.** Phụ thuộc: T29. Nghiệm thu: CSV/XLSX/Parquet đọc giới hạn; đổi sheet/dấu phân cách và đọc lại; hiển thị header khi chỉ có tiêu đề; lỗi tệp hiển thị trong hộp xem trước, không treo luồng. Verify: test reader và UI, tệp hợp lệ/lỗi/giới hạn.
+- [ ] **T31 — Bộ template nhập liệu.** Phụ thuộc: T30. Nghiệm thu: mẫu CMIS, MDMS dài/rộng 24/48/96, thương phẩm và lịch; lưu được CSV/XLSX từ ứng dụng, có dữ liệu minh hoạ và hướng dẫn cột/ngữ nghĩa; template đọc được bằng importer thật, giữ mã có số 0 đầu và không ghi đè nguồn. Verify: unit/integration + UI.
+- [ ] **T32 — Giao diện hiện đại, dễ đọc.** Phụ thuộc: T29/T31. Nghiệm thu: nền sáng trung tính, chữ rõ và lớn hơn, màu nhấn xanh, phân cấp tiêu đề, trạng thái focus/disabled/selection dễ phân biệt; bố cục nguồn gọn, không cắt ở cửa sổ laptop. Verify: kiểm tra ảnh Qt runtime và tương tác thực.
+- [ ] **T33 — Review và kiểm chứng cuối.** Phụ thuộc: T30/T31/T32. Nghiệm thu: full suite pass 100%, không skip; Ruff/mypy/build wheel pass; tài liệu cách lấy template/xem trước và báo cáo kiểm chứng được cập nhật. Verify: toàn bộ checks + screenshot UI.
+
 ## Nhật ký kiểm chứng
 
 Bằng chứng Red/Green thô theo task được giữ cục bộ tại `docs/verification/`. Repository chứa báo cáo tổng hợp và JUnit cuối đã bỏ hostname. Kết quả cuối cùng và việc chưa kiểm chứng được ghi trong `docs/verification/final.md`; không thay thế task ngoài môi trường bằng dấu `[x]`.
