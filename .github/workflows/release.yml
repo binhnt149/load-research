@@ -98,7 +98,7 @@ jobs:
     needs: quality
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.target == 'macos-arm64' && 'macos-15' || 'windows-2022' }}
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:

@@ -53,7 +53,7 @@ Thứ tự: quality cả hai OS → native cả hai OS → publish. Một gate l
 
 Compiler cache được tách theo OS/CPU và dependency lock, ghim action cache bằng SHA; lưu sau compile, kể cả khi smoke sau đó lỗi. Cache không thay thế các quality/smoke gate. Spec khai báo rõ NumPy compatibility vendored của SciPy/scikit-learn vì chúng nhập FFT/linalg bằng tên động, backend SVG được Matplotlib nhập khi xuất hình, đồng thời bật `dill-compat` cho cloudpickle.
 
-Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`, rồi chọn `platform`: `all`, `macos-arm64` hoặc `windows-x64`. Hai OS vẫn chạy đủ quality gates khi chỉ build một nền tảng. Các lượt thủ công khác lựa chọn nền tảng không huỷ lẫn nhau. Sau khi hoàn tất, tải artifact `release-*` tương ứng trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 90 phút; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
+Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`, rồi chọn `platform`: `all`, `macos-arm64` hoặc `windows-x64`. Hai OS vẫn chạy đủ quality gates khi chỉ build một nền tảng. Các lượt thủ công khác lựa chọn nền tảng không huỷ lẫn nhau. Sau khi hoàn tất, tải artifact `release-*` tương ứng trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 120 phút để có thời gian dự phòng cho compile Windows và đóng gói; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
 
 Để phát hành phiên bản tiếp theo, ví dụ `0.1.1`:
 
