@@ -1,0 +1,12 @@
+{
+  "version": "0.1.0",
+  "wheel_sha256": "449fe27d90598243f202b23e12c6b8e06d870a21ae96cd1441e42e554cf4559c",
+  "temporary_target_install": "pass",
+  "import_from_target": "pass",
+  "cli_demo_run_export": "pass",
+  "result_status": "completed",
+  "xlsx": "pass",
+  "png_files": 6,
+  "svg_files": 6,
+  "runtime_dependencies": "existing verified venv; not clean-machine/native evidence"
+}

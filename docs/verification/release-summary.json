@@ -1,0 +1,54 @@
+{
+  "version": "0.1.0",
+  "date": "2026-10-24",
+  "release_type": "prerelease",
+  "tests": {
+    "tests": 133,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "test_seconds": 17.151,
+  "static_checks": [
+    {
+      "command": "python -m ruff check src tests packaging",
+      "exit_code": 0,
+      "output": "All checks passed!\n"
+    },
+    {
+      "command": "python -m ruff format --check src tests packaging",
+      "exit_code": 0,
+      "output": "69 files already formatted\n"
+    },
+    {
+      "command": "python -m mypy src/load_research",
+      "exit_code": 0,
+      "output": "Success: no issues found in 36 source files\n"
+    }
+  ],
+  "package": {
+    "source_files": 36,
+    "mismatches": [],
+    "wheel_sha256": "449fe27d90598243f202b23e12c6b8e06d870a21ae96cd1441e42e554cf4559c",
+    "readme_metadata": true,
+    "repository_url": true
+  },
+  "smoke": {
+    "version": "0.1.0",
+    "wheel_sha256": "449fe27d90598243f202b23e12c6b8e06d870a21ae96cd1441e42e554cf4559c",
+    "temporary_target_install": "pass",
+    "import_from_target": "pass",
+    "cli_demo_run_export": "pass",
+    "result_status": "completed",
+    "xlsx": "pass",
+    "png_files": 6,
+    "svg_files": 6,
+    "runtime_dependencies": "existing verified venv; not clean-machine/native evidence"
+  },
+  "native_installers_verified": false,
+  "open_acceptance": [
+    "E01-real-data-UAT",
+    "E02-native-clean-Windows-macOS",
+    "E03-full-year-benchmark-UAT"
+  ]
+}

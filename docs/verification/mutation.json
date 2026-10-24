@@ -1,0 +1,7 @@
+{
+  "mutation": "replace alpha=A/S by alpha=1",
+  "test_exit_code": 1,
+  "detected": true,
+  "restored_sha256": "418d55dd5b302a37566b09ac3814eada0ae85817bcd2800a124ccfbda2b61100",
+  "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n____ test_monthly_balance_preserves_day_type_levels_and_noise_contributions ____\ntests/unit/test_scaling.py:32: in test_monthly_balance_preserves_day_type_levels_and_noise_contributions\n    result = scale_industry(profiles, groups, counts, 123456.0, min_customers=1)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/load_research/scaling.py:186: in scale_industry\n    raise ValueError(\"energy conservation check failed\")\nE   ValueError: energy conservation check failed\n=========================== short test summary info ============================\nFAILED tests/unit/test_scaling.py::test_monthly_balance_preserves_day_type_levels_and_noise_contributions\n1 failed in 0.82s\n"
+}

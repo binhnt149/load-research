@@ -1,0 +1,17 @@
+[
+  {
+    "command": "python -m ruff check src tests packaging",
+    "exit_code": 0,
+    "output": "All checks passed!\n"
+  },
+  {
+    "command": "python -m ruff format --check src tests packaging",
+    "exit_code": 0,
+    "output": "69 files already formatted\n"
+  },
+  {
+    "command": "python -m mypy src/load_research",
+    "exit_code": 0,
+    "output": "Success: no issues found in 36 source files\n"
+  }
+]

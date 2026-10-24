@@ -1,0 +1,37 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+*.pem
+*.key
+research-projects/
+benchmark-data/
+.DS_Store
+
+# Local verification history can contain machine paths and hostnames.
+docs/verification/*.log
+docs/verification/*.xml
+!docs/verification/final-tests.xml
+!docs/verification/release-tests.xml
+docs/verification/desktop.png
+docs/verification/package-integrity.json
+docs/verification/wheel-smoke.json
+
+# Credentials and local editor state
+.ssh/
+.aws/
+.idea/
+.vscode/
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.duckdb
+*.duckdb.wal
