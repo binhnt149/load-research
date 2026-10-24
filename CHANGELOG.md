@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- GitHub Actions kiểm thử Windows/macOS, build DMG/Windows ZIP/wheel và tạo pre-release khi push tag hợp lệ; có chế độ build thử thủ công.
+- GitHub Actions kiểm thử Windows/macOS, build DMG/Windows ZIP/wheel và tạo pre-release khi push tag hợp lệ; có chế độ build thử thủ công theo từng nền tảng.
+- Đóng gói các module FFT/linalg và backend SVG nhập động; dùng Clang-cl trên Windows để khắc phục lỗi MSVC C1002 khi biên dịch SciPy. Native CLI demo và xuất XLSX/PNG/SVG đã đạt trên hai OS.
 - Đóng connection SQLite đích trước khi công bố backup, sửa lỗi Windows không đổi tên/dọn được thư mục sao lưu; thêm regression cho cả nhánh thành công và lỗi.
 
 ## 0.1.0 — 2026-10-24

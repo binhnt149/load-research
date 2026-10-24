@@ -95,9 +95,9 @@ Suite bao gồm benchmark nhỏ có giới hạn, không tự chạy quy mô 122
 
 Workflow [CI and desktop release](.github/workflows/release.yml) kiểm tra Windows x64 và macOS arm64 khi push `main` hoặc mở PR. Push tag `vX.Y.Z` sẽ build DMG macOS, ZIP portable Windows và wheel, chạy smoke test chương trình đóng gói, tạo checksum rồi công bố GitHub **pre-release**. Tag phải trùng version trong `pyproject.toml` và `src/load_research/__init__.py`; workflow không thay release đã có.
 
-Để build thử: mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml) → **Run workflow** → chọn `main`. Lượt thủ công chỉ tạo artifact để tải, không công bố Release. Không cần khai báo PAT/secret riêng; job publish dùng `GITHUB_TOKEN` với `contents: write`.
+Để build thử: mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml) → **Run workflow** → chọn `main` và `platform`: `all`, `macos-arm64` hoặc `windows-x64`. Lượt thủ công tạo artifact để tải. Job publish dùng `GITHUB_TOKEN` có sẵn với `contents: write` khi push tag hợp lệ.
 
-Quy trình tag mới, tệp đầu ra và giới hạn ký số được ghi trong [hướng dẫn phát hành](packaging/README.md#github-actions).
+Quy trình tag mới, tệp đầu ra và giới hạn ký số được ghi trong [hướng dẫn phát hành](packaging/README.md#github-actions). Kết quả test, native smoke và trạng thái tài khoản Actions được ghi trong [báo cáo kiểm chứng](docs/verification/actions.md).
 
 ```bash
 python -m load_research benchmark --output benchmark-data/small --customers 100 --months 1 --year 2025

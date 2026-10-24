@@ -27,6 +27,8 @@ cd ..
 
 Kiểm tra lệnh dry-run trước; không dùng `--force` để bỏ qua cảnh báo không hiểu. macOS cần toolchain Xcode; Windows cần Visual Studio với thành phần Clang-cl. Spec dùng `--clang` vì compiler MSVC đã báo C1002 khi tối ưu module SciPy trên runner Windows; macOS vốn sử dụng Clang. Đầu ra dự kiến dưới `dist/native`; kết quả CI được ghi trong [báo cáo Actions](../docs/verification/actions.md). Kiểm tra native CLI trong CI không thay việc xác nhận GUI, plugin, worker multiprocessing và cài/chạy trên máy sạch.
 
+Kiểm tra diff của spec sau dry-run: công cụ có thể tự ghi đường dẫn icon theo máy. Giữ `icon =` trong cấu hình chung để mỗi runner chọn icon phù hợp.
+
 Tài liệu gốc: [Qt pyside6-deploy](https://doc.qt.io/qtforpython-6/deployment/deployment-pyside6-deploy.html), [Nuitka user manual](https://nuitka.net/user-documentation/user-manual.html). Lệnh `pyside6-deploy --help` đã được đối chiếu với bản cài trong workspace.
 
 ## Smoke trên bản source và máy sạch
