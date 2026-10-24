@@ -4,6 +4,8 @@ import csv
 import itertools
 import zipfile
 from collections.abc import Generator, Iterator
+from contextlib import closing
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
@@ -19,7 +21,7 @@ def _text(value: object) -> str:
     return str(value)
 
 
-def _excel_rows(path: Path, sheet: str | None) -> Iterator[list]:
+def _validate_excel_archive(path: Path) -> None:
     with zipfile.ZipFile(path) as archive:
         members = archive.infolist()
         if (
@@ -35,6 +37,18 @@ def _excel_rows(path: Path, sheet: str | None) -> Iterator[list]:
             for item in members
         ):
             raise ValueError("Excel archive has an unsafe compression ratio")
+
+
+def excel_sheets(path: Path) -> tuple[str, ...]:
+    _validate_excel_archive(path)
+    with closing(
+        openpyxl.load_workbook(path, read_only=True, keep_links=False)
+    ) as book:
+        return tuple(book.sheetnames)
+
+
+def _excel_rows(path: Path, sheet: str | None) -> Iterator[list]:
+    _validate_excel_archive(path)
     values = openpyxl.load_workbook(
         path, read_only=True, data_only=True, keep_links=False
     )
@@ -59,7 +73,9 @@ def _excel_rows(path: Path, sheet: str | None) -> Iterator[list]:
         formulas.close()
 
 
-def _raw_rows(path: Path, sheet: str | None, delimiter: str) -> Iterator[list]:
+def _raw_rows(
+    path: Path, sheet: str | None, delimiter: str
+) -> Generator[list, None, None]:
     suffix = path.suffix.lower()
     if suffix == ".csv":
         with path.open(encoding="utf-8-sig", newline="") as stream:
@@ -89,7 +105,29 @@ def read_rows(
     path = Path(path)
     if not path.is_file() or len(delimiter) != 1 or header_row < 1:
         raise ValueError("invalid input file or table options")
-    rows = iter(_raw_rows(path, sheet, delimiter))
+    with closing(_raw_rows(path, sheet, delimiter)) as rows:
+        headers = _headers(rows, header_row)
+        aliases = mapping or {name: name for name in headers}
+        if any(source not in headers for source in aliases.values()):
+            raise ValueError("mapping references a missing source column")
+        reserved = {"_source_row", "_source_path", "_source_sheet"}
+        if reserved.intersection(aliases):
+            raise ValueError("mapping uses reserved provenance fields")
+        for number, row in _records(rows, headers, header_row + 1):
+            mapped: dict = {
+                canonical: row[source] for canonical, source in aliases.items()
+            }
+            mapped.update(
+                {
+                    "_source_row": number,
+                    "_source_path": str(path),
+                    "_source_sheet": sheet,
+                }
+            )
+            yield mapped
+
+
+def _headers(rows: Iterator[list], header_row: int = 1) -> list[str]:
     try:
         for _ in range(header_row - 1):
             next(rows)
@@ -102,23 +140,44 @@ def read_rows(
         or len(set(headers)) != len(headers)
     ):
         raise ValueError("ambiguous or empty table header")
-    aliases = mapping or {name: name for name in headers}
-    if any(source not in headers for source in aliases.values()):
-        raise ValueError("mapping references a missing source column")
-    reserved = {"_source_row", "_source_path", "_source_sheet"}
-    if reserved.intersection(aliases):
-        raise ValueError("mapping uses reserved provenance fields")
-    for number, values in enumerate(rows, start=header_row + 1):
+    return headers
+
+
+def _records(
+    rows: Iterator[list], headers: list[str], start: int
+) -> Iterator[tuple[int, dict]]:
+    for number, values in enumerate(rows, start=start):
         if not values or all(value is None or value == "" for value in values):
             continue
         if len(values) != len(headers):
             raise ValueError(f"column count differs from header at source row {number}")
-        row = dict(zip(headers, (_text(value) for value in values), strict=True))
-        mapped: dict = {canonical: row[source] for canonical, source in aliases.items()}
-        mapped.update(
-            {"_source_row": number, "_source_path": str(path), "_source_sheet": sheet}
+        yield (
+            number,
+            dict(zip(headers, (_text(value) for value in values), strict=True)),
         )
-        yield mapped
+
+
+@dataclass(frozen=True)
+class TablePreview:
+    columns: tuple[str, ...]
+    rows: list[dict]
+    has_more: bool
+
+
+def read_preview(
+    path: Path, *, limit: int = 50, sheet: str | None = None, delimiter: str = ","
+) -> TablePreview:
+    if type(limit) is not int or not 1 <= limit <= 1000:
+        raise ValueError("preview limit must be between 1 and 1000")
+    path = Path(path)
+    if not path.is_file() or len(delimiter) != 1:
+        raise ValueError("invalid input file or table options")
+    with closing(_raw_rows(path, sheet, delimiter)) as stream:
+        headers = _headers(stream)
+        rows = [
+            row for _, row in itertools.islice(_records(stream, headers, 2), limit + 1)
+        ]
+    return TablePreview(tuple(headers), rows[:limit], len(rows) > limit)
 
 
 def read_batches(

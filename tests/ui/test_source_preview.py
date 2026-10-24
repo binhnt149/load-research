@@ -4,6 +4,68 @@ from PySide6.QtWidgets import QFileDialog
 from load_research.ui.forms import FileList
 
 
+def test_preview_recovers_from_missing_file_and_never_displays_stale_rows(
+    qtbot, tmp_path
+):
+    from load_research.ui.forms import SourcePreviewDialog
+
+    path = tmp_path / "source.csv"
+    dialog = SourcePreviewDialog(str(path))
+    qtbot.addWidget(dialog)
+    assert dialog.model.rowCount() == 0
+    assert "Không đọc được" in dialog.status.text()
+    path.write_text("customer_id,value\n0001,2\n")
+    dialog.reload_button.click()
+    assert dialog.model.records[0]["customer_id"] == "0001"
+    path.write_text("id,id\n1,2\n")
+    dialog.reload_button.click()
+    assert dialog.model.rowCount() == 0
+    assert "Không đọc được" in dialog.status.text()
+
+
+def test_preview_can_switch_delimiter_and_excel_sheet(qtbot, tmp_path):
+    import openpyxl
+
+    from load_research.ui.forms import SourcePreviewDialog
+
+    path = tmp_path / "source.csv"
+    path.write_text("customer_id;value\n0001;2\n")
+    csv_dialog = SourcePreviewDialog(str(path))
+    qtbot.addWidget(csv_dialog)
+    csv_dialog.delimiter.setCurrentIndex(csv_dialog.delimiter.findData(";"))
+    assert csv_dialog.model.columnCount() == 2
+    assert csv_dialog.model.records[0]["customer_id"] == "0001"
+    book = openpyxl.Workbook()
+    book.active.title = "Cover"
+    book.active.append(["Description"])
+    data = book.create_sheet("Dữ liệu")
+    data.append(["customer_id", "value"])
+    data.append(["0001", 2])
+    xlsx = tmp_path / "source.xlsx"
+    book.save(xlsx)
+    excel_dialog = SourcePreviewDialog(str(xlsx))
+    qtbot.addWidget(excel_dialog)
+    excel_dialog.sheet.setCurrentText("Dữ liệu")
+    assert excel_dialog.model.records[0]["customer_id"] == "0001"
+
+
+def test_header_only_and_corrupt_excel_preview_have_explanatory_states(qtbot, tmp_path):
+    from load_research.ui.forms import SourcePreviewDialog
+
+    path = tmp_path / "empty.csv"
+    path.write_text("customer_id,value\n")
+    dialog = SourcePreviewDialog(str(path))
+    qtbot.addWidget(dialog)
+    assert dialog.model.columnCount() == 2
+    assert "chưa có dòng" in dialog.status.text()
+    corrupt = tmp_path / "bad.xlsx"
+    corrupt.write_bytes(b"not an Excel archive")
+    error_dialog = SourcePreviewDialog(str(corrupt))
+    qtbot.addWidget(error_dialog)
+    assert error_dialog.model.rowCount() == 0
+    assert "Không đọc được" in error_dialog.status.text()
+
+
 def test_choosing_files_selects_the_new_file_and_preview_emits_its_path(
     qtbot, monkeypatch
 ):

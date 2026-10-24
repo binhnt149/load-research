@@ -1,7 +1,6 @@
 """Vietnamese research forms with explicit source semantics and column mapping."""
 
 from dataclasses import replace
-from itertools import islice
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -22,7 +21,6 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
-    QTableView,
     QTableWidget,
     QVBoxLayout,
     QWidget,
@@ -32,7 +30,7 @@ from load_research.application.models import SourceInput, StudyRequest
 from load_research.calendar import ResearchCalendar
 from load_research.domain.config import RunConfig, SourceOptions
 from load_research.importers.tables import read_rows
-from load_research.ui.models import RecordsModel
+from load_research.ui.source_preview import SourcePreviewDialog
 
 CMIS_FIELDS = [
     "customer_id",
@@ -156,41 +154,6 @@ class FileList(QGroupBox):
         if self.list.count():
             self.list.setCurrentRow(min(max(row, 0), self.list.count() - 1))
         self.update_buttons()
-
-
-class SourcePreviewDialog(QDialog):
-    def __init__(
-        self,
-        path: str,
-        *,
-        limit: int = 50,
-        sheet: str | None = None,
-        delimiter: str = ",",
-        parent=None,
-    ) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Xem trước dữ liệu nguồn")
-        self.resize(950, 520)
-        layout = QVBoxLayout(self)
-        label = QLabel(f"{path}\nTối đa {limit} dòng đầu · chưa thay đổi dữ liệu gốc")
-        label.setTextFormat(Qt.TextFormat.PlainText)
-        layout.addWidget(label)
-        reader = read_rows(Path(path), sheet=sheet, delimiter=delimiter)
-        try:
-            rows = [
-                {key: value for key, value in row.items() if not key.startswith("_")}
-                for row in islice(reader, limit)
-            ]
-        finally:
-            reader.close()
-        self.model = RecordsModel(self)
-        self.model.set_records(rows)
-        table = QTableView()
-        table.setModel(self.model)
-        layout.addWidget(table)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
 
 
 class ExportDialog(QDialog):
