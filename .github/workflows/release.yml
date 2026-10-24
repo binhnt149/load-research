@@ -123,12 +123,29 @@ jobs:
       - name: Audit native build tools
         shell: bash
         run: python -m pip_audit -r packaging/requirements-build.txt --disable-pip --no-deps --strict
+      - name: Restore compiler cache
+        id: compiler-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/nuitka-cache
+          key: nuitka-v1-${{ matrix.target }}-${{ hashFiles('requirements.lock', 'packaging/requirements-build.txt') }}-${{ github.sha }}-${{ github.run_id }}
+          restore-keys: |
+            nuitka-v1-${{ matrix.target }}-${{ hashFiles('requirements.lock', 'packaging/requirements-build.txt') }}-
       - name: Compile standalone application
+        id: compile
+        env:
+          NUITKA_CACHE_DIR: ${{ runner.temp }}/nuitka-cache
         working-directory: packaging
         shell: bash
         run: >-
           pyside6-deploy -c pysidedeploy.spec --mode standalone --no-install
           --extra-ignore-dirs=.git,.venv,tests,docs,research-projects,benchmark-data,build,dist
+      - name: Save compiler cache
+        if: always() && steps.compile.outcome != 'skipped'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/nuitka-cache
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
       - name: Smoke test the packaged executable
         shell: bash
         env:
