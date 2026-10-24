@@ -25,7 +25,7 @@ pyside6-deploy -c pysidedeploy.spec --mode standalone --no-install --extra-ignor
 cd ..
 ```
 
-Kiểm tra lệnh dry-run trước; không dùng `--force` để bỏ qua cảnh báo không hiểu. macOS cần toolchain Xcode; Windows cần compiler tương thích Nuitka. Đầu ra dự kiến dưới `dist/native`; kết quả CI được ghi trong [báo cáo Actions](../docs/verification/actions.md). Kiểm tra native CLI trong CI không thay việc xác nhận GUI, plugin, worker multiprocessing và cài/chạy trên máy sạch.
+Kiểm tra lệnh dry-run trước; không dùng `--force` để bỏ qua cảnh báo không hiểu. macOS cần toolchain Xcode; Windows cần Visual Studio với thành phần Clang-cl. Spec dùng `--clang` vì compiler MSVC đã báo C1002 khi tối ưu module SciPy trên runner Windows; macOS vốn sử dụng Clang. Đầu ra dự kiến dưới `dist/native`; kết quả CI được ghi trong [báo cáo Actions](../docs/verification/actions.md). Kiểm tra native CLI trong CI không thay việc xác nhận GUI, plugin, worker multiprocessing và cài/chạy trên máy sạch.
 
 Tài liệu gốc: [Qt pyside6-deploy](https://doc.qt.io/qtforpython-6/deployment/deployment-pyside6-deploy.html), [Nuitka user manual](https://nuitka.net/user-documentation/user-manual.html). Lệnh `pyside6-deploy --help` đã được đối chiếu với bản cài trong workspace.
 
@@ -46,14 +46,14 @@ Trên **từng artifact native và từng máy sạch**: mở không có Python,
 | Sự kiện | Kết quả |
 |---|---|
 | Push `main` / PR vào `main` | Ruff, mypy, toàn bộ pytest, audit lock và build wheel trên hai OS |
-| Actions → Run workflow | Các gate trên, build native, smoke demo/xuất, DMG/ZIP; chỉ lưu artifact, không tạo Release |
+| Actions → Run workflow | Các gate trên cả hai OS; build native theo lựa chọn all/macOS/Windows, smoke demo/xuất, DMG/ZIP; chỉ lưu artifact, không tạo Release |
 | Push tag `vX.Y.Z` | Toàn bộ gate/build; kiểm tra đủ asset và báo cáo smoke; SHA256SUMS; tạo GitHub pre-release |
 
 Thứ tự: quality cả hai OS → native cả hai OS → publish. Một gate lỗi sẽ chặn publish. Không bỏ/skip test để phát hành. Lượt full-year benchmark không nằm trong CI; E01/E02/E03 vẫn có điều kiện nghiệm thu riêng.
 
 Compiler cache được tách theo OS/CPU và dependency lock, ghim action cache bằng SHA; lưu sau compile, kể cả khi smoke sau đó lỗi. Cache không thay thế các quality/smoke gate. Spec khai báo rõ NumPy compatibility vendored của SciPy/scikit-learn vì chúng nhập FFT/linalg bằng tên động, backend SVG được Matplotlib nhập khi xuất hình, đồng thời bật `dill-compat` cho cloudpickle.
 
-Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`. Sau khi hoàn tất, tải `release-macos-arm64`, `release-windows-x64` hoặc `release-wheel` trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 90 phút; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
+Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`, rồi chọn `platform`: `all`, `macos-arm64` hoặc `windows-x64`. Hai OS vẫn chạy đủ quality gates khi chỉ build một nền tảng. Các lượt thủ công khác lựa chọn nền tảng không huỷ lẫn nhau. Sau khi hoàn tất, tải artifact `release-*` tương ứng trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 90 phút; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
 
 Để phát hành phiên bản tiếp theo, ví dụ `0.1.1`:
 
