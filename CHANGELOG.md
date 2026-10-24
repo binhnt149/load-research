@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## 0.1.2 — 2026-10-24
+## 0.1.2 — 2026-10-25
 
 Bản thử nghiệm cải thiện giao diện và chuẩn bị dữ liệu đầu vào; giữ nguyên phương pháp `class-profile-v1`.
 

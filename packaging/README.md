@@ -57,15 +57,15 @@ Compiler cache được tách theo OS/CPU và dependency lock, ghim action cache
 
 Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`, rồi chọn `platform`: `all`, `macos-arm64` hoặc `windows-x64`. Hai OS vẫn chạy đủ quality gates khi chỉ build một nền tảng. Các lượt thủ công khác lựa chọn nền tảng không huỷ lẫn nhau. Sau khi hoàn tất, tải artifact `release-*` tương ứng trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 120 phút để có thời gian dự phòng cho compile Windows và đóng gói; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
 
-Để phát hành phiên bản tiếp theo, ví dụ `0.1.2`:
+Để phát hành phiên bản tiếp theo, ví dụ `0.1.3`:
 
 1. Sửa version đồng nhất trong `pyproject.toml` và `src/load_research/__init__.py`; cập nhật assertion version trong `tests/unit/test_package.py` cùng changelog/ghi chú liên quan.
 2. Commit và push `main`, kiểm tra CI đạt.
 3. Tạo tag mới trỏ commit đó:
 
 ```bash
-git tag -a v0.1.2 -m "Release 0.1.2"
-git push origin v0.1.2
+git tag -a v0.1.3 -m "Release 0.1.3"
+git push origin v0.1.3
 ```
 
 Chỉ đẩy tag khi metadata đã trùng phiên bản đó; nếu khác, workflow sẽ từ chối. Không di chuyển tag đã phát hành. Workflow tạo release mới và không dùng `--clobber`; nếu release cùng tag đã tồn tại, dừng để kiểm tra thay vì thay asset. Lượt thủ công không phát hành lại tag cũ.

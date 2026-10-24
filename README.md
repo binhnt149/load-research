@@ -2,13 +2,13 @@
 
 Ứng dụng nghiên cứu phụ tải cục bộ theo **ngành × năm-tháng × loại ngày**, từ tập mẫu đã chốt. Có biểu đồ chung, thành phần hành vi, chuẩn hoá Q/U/V, suy rộng theo thương phẩm và xuất 24/48 chu kỳ bằng kW/kWh. Ứng dụng không gửi dữ liệu lên mạng.
 
-Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kết quả kiểm chứng bản hiện tại: [release 0.1.1](docs/verification/release-0.1.1.md).
+Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kết quả kiểm chứng bản hiện tại: [release 0.1.2](docs/verification/release-0.1.2.md).
 
-## Bản phát hành 0.1.1
+## Bản phát hành 0.1.2
 
-[GitHub Release v0.1.1](https://github.com/binhnt149/load-research/releases/tag/v0.1.1) đã cung cấp DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel. Workflow tag đạt mọi quality/native/publish gate. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.1.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
+[GitHub Release v0.1.2](https://github.com/binhnt149/load-research/releases/tag/v0.1.2) đã cung cấp DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel. Workflow tag đạt mọi quality/native/publish gate; 188/188 test pass trên mỗi OS. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.2.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
 
-## Giao diện và tệp mẫu trong mã nguồn hiện tại
+## Giao diện và tệp mẫu
 
 Tab **Dữ liệu** có bốn nhóm nguồn trong hai cột, font hệ thống lớn hơn và màu nhấn xanh. Tên tệp hiển thị ngắn gọn; di chuột để xem đường dẫn đầy đủ. Phần sheet/dấu phân cách/ánh xạ CMIS, thương phẩm và lịch nằm trong **Thiết lập cột & định dạng…**.
 
