@@ -1,0 +1,198 @@
+name: CI and desktop release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  PYTHONUTF8: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  quality:
+    name: Quality (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022]
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Validate metadata
+        id: metadata
+        run: |
+          version="$(python packaging/release_tools.py version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python packaging/release_tools.py version --tag "$RELEASE_TAG"
+      - name: Install locked dependencies and application
+        run: |
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps --no-build-isolation .
+      - name: Lint and type check
+        run: |
+          python -m ruff check src tests packaging
+          python -m ruff format --check src tests packaging
+          python -m mypy src/load_research
+      - name: Full test suite
+        run: python -m pytest -q --junitxml=ci-results/tests.xml
+      - name: Audit runtime and development dependencies
+        run: python -m pip_audit -r requirements.lock --disable-pip --no-deps --strict --format json --output ci-results/dependency-audit.json
+      - name: Build Python wheel
+        run: |
+          python -m build --wheel --no-isolation
+          mkdir -p dist/release-wheel
+          cp dist/*.whl requirements.lock packaging/requirements-build.txt dist/release-wheel/
+      - name: Save check reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: checks-${{ matrix.os }}
+          path: ci-results/
+          retention-days: 7
+      - name: Save wheel for release
+        if: matrix.os == 'macos-15' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-wheel
+          path: dist/release-wheel/
+          if-no-files-found: error
+          retention-days: 3
+
+  native:
+    name: Native (${{ matrix.target }})
+    needs: quality
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: macos-arm64
+          - os: windows-2022
+            target: windows-x64
+    env:
+      VERSION: ${{ needs.quality.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.lock
+            packaging/requirements-build.txt
+      - name: Install locked application and build tools
+        shell: bash
+        run: |
+          python -m pip install -r requirements.lock
+          python -m pip install -r packaging/requirements-build.txt
+          python -m pip install --no-deps --no-build-isolation .
+      - name: Audit native build tools
+        shell: bash
+        run: python -m pip_audit -r packaging/requirements-build.txt --disable-pip --no-deps --strict
+      - name: Compile standalone application
+        working-directory: packaging
+        shell: bash
+        run: >-
+          pyside6-deploy -c pysidedeploy.spec --mode standalone --no-install
+          --extra-ignore-dirs=.git,.venv,tests,docs,research-projects,benchmark-data,build,dist
+      - name: Smoke test the packaged executable
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: python packaging/release_tools.py smoke --bundle dist/native --report "dist/release/native-smoke-$TARGET.json"
+      - name: Create macOS DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          stage="$(mktemp -d)"
+          ditto dist/native/LoadResearch.app "$stage/LoadResearch.app"
+          ln -s /Applications "$stage/Applications"
+          hdiutil create -volname 'Load Research' -srcfolder "$stage" -format UDZO "dist/release/LoadResearch-$VERSION-macos-arm64.dmg"
+      - name: Create Windows portable ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist/native/LoadResearch.dist -DestinationPath "dist/release/LoadResearch-$env:VERSION-windows-x64.zip"
+      - name: Save native release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/release/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+  publish:
+    name: Publish GitHub pre-release
+    needs: [quality, native]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.quality.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Validate assets and create checksums
+        run: python3 packaging/release_tools.py assets release-assets
+      - name: Publish without replacing an existing release
+        shell: bash
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Bản thử nghiệm của Load Research Desktop.
+
+          - macOS Apple Silicon: tải DMG, kéo LoadResearch.app vào Applications.
+          - Windows x64: giải nén ZIP và chạy LoadResearch.dist/launcher.exe; giữ nguyên cả thư mục.
+          - Wheel dành cho môi trường Python 3.12. SHA256SUMS bao gồm mọi asset.
+
+          Các chương trình native đã chạy demo và xuất XLSX/PNG/SVG trên runner.
+          Bản macOS chưa ký Developer ID/notarize; Windows chưa có Authenticode.
+          UAT giao diện trên máy sạch, dữ liệu thực và benchmark đủ năm vẫn cần nghiệm thu riêng.
+          NOTES
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --verify-tag --prerelease --title "Load Research Desktop $VERSION" \
+            --notes-file release-notes.md

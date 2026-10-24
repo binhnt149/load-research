@@ -14,12 +14,15 @@ Wheel không kèm Python/Qt. Muốn cài ngoại tuyến cần chuẩn bị whee
 
 ## Native trên chính hệ điều hành đích
 
-`pysidedeploy.spec` dựa trên template của PySide6 6.12.0 đang cài. Phiên bản Nuitka đề xuất từ template là 4.1.1, chưa cài/chạy compiler trong phiên này; cần khóa cả phụ thuộc build theo từng OS trước phát hành.
+`pysidedeploy.spec` dựa trên template PySide6 6.12.0; công cụ build được khóa trong `requirements-build.txt`. Chạy deploy từ thư mục `packaging` để đường dẫn tương đối trong spec được giải quyết đúng. Build giới hạn 2 compiler job và cho phép Nuitka tải công cụ phụ trợ mà nó yêu cầu; không bỏ qua lỗi/cảnh báo kiểm chứng.
 
 ```bash
-python -m pip install Nuitka==4.1.1
-pyside6-deploy -c packaging/pysidedeploy.spec --mode standalone --dry-run --no-install --extra-ignore-dirs=.venv,tests,docs,research-projects,benchmark-data,build,dist
-pyside6-deploy -c packaging/pysidedeploy.spec --mode standalone --no-install --extra-ignore-dirs=.venv,tests,docs,research-projects,benchmark-data,build,dist
+python -m pip install -r packaging/requirements-build.txt
+python -m pip install --no-deps --no-build-isolation .
+cd packaging
+pyside6-deploy -c pysidedeploy.spec --mode standalone --dry-run --no-install --extra-ignore-dirs=.git,.venv,tests,docs,research-projects,benchmark-data,build,dist
+pyside6-deploy -c pysidedeploy.spec --mode standalone --no-install --extra-ignore-dirs=.git,.venv,tests,docs,research-projects,benchmark-data,build,dist
+cd ..
 ```
 
 Kiểm tra lệnh dry-run trước; không dùng `--force` để bỏ qua cảnh báo không hiểu. macOS cần toolchain Xcode; Windows cần compiler tương thích Nuitka. Đầu ra dự kiến dưới `dist/native`; đây là cấu hình chuẩn bị, **chưa phải build native đã pass**. Xác nhận đường plugin, gói dữ liệu Matplotlib/scikit-learn, multiprocessing spawn và metadata phiên bản bằng smoke test trên artifact thực.
@@ -34,4 +37,43 @@ python packaging/smoke_desktop.py --project research-projects/demo-project --scr
 
 Script mở Qt desktop thực, nạp run thật và chụp widget; `qt_platform=cocoa` xác nhận không dùng offscreen trên macOS. Suite pytest-qt riêng dùng offscreen để lặp lại ổn định.
 
-Trên **từng artifact native và từng máy sạch**: mở không có Python, tạo dự án ở đường dẫn tiếng Việt, nạp demo, chạy/huỷ/chạy lại, xem 24/48 kW/kWh/chuẩn hoá và thành phần, truy vết ngày, đặt nhãn, so run, xuất CSV/XLSX/PNG/SVG, sao lưu, chuyển bản sao lưu sang máy còn lại và xác minh checksum. So fixture trong dung sai của spec. Ghi OS/CPU/build hash/ảnh/log/kết quả; chỉ lúc đó mới đóng E02/AC-23. Việc ký/notarize/installer cần quyết định phân phối riêng, không có credential hay quy trình phát hành tự động trong repo.
+Trên **từng artifact native và từng máy sạch**: mở không có Python, tạo dự án ở đường dẫn tiếng Việt, nạp demo, chạy/huỷ/chạy lại, xem 24/48 kW/kWh/chuẩn hoá và thành phần, truy vết ngày, đặt nhãn, so run, xuất CSV/XLSX/PNG/SVG, sao lưu, chuyển bản sao lưu sang máy còn lại và xác minh checksum. So fixture trong dung sai của spec. Ghi OS/CPU/build hash/ảnh/log/kết quả; chỉ lúc đó mới đóng E02/AC-23. Việc ký/notarize/installer cần quyết định phân phối riêng; workflow hiện đóng gói chưa ký số và không chứa credential ký.
+
+## GitHub Actions
+
+[Workflow](../.github/workflows/release.yml) dùng Python 3.12, runner `macos-15` (Apple Silicon arm64) và `windows-2022` (x64). Các action được ghim commit SHA. Job kiểm tra/build chỉ có quyền đọc repository; duy nhất job publish có `contents: write`. Không dùng `pull_request_target`, PAT hay secret ký số.
+
+| Sự kiện | Kết quả |
+|---|---|
+| Push `main` / PR vào `main` | Ruff, mypy, toàn bộ pytest, audit lock và build wheel trên hai OS |
+| Actions → Run workflow | Các gate trên, build native, smoke demo/xuất, DMG/ZIP; chỉ lưu artifact, không tạo Release |
+| Push tag `vX.Y.Z` | Toàn bộ gate/build; kiểm tra đủ asset và báo cáo smoke; SHA256SUMS; tạo GitHub pre-release |
+
+Thứ tự: quality cả hai OS → native cả hai OS → publish. Một gate lỗi sẽ chặn publish. Không bỏ/skip test để phát hành. Lượt full-year benchmark không nằm trong CI; E01/E02/E03 vẫn có điều kiện nghiệm thu riêng.
+
+Để build thử, mở [Actions](https://github.com/binhnt149/load-research/actions/workflows/release.yml), chọn **Run workflow**, nhánh `main`. Sau khi hoàn tất, tải `release-macos-arm64`, `release-windows-x64` hoặc `release-wheel` trong mục **Artifacts** của lượt chạy; artifact giữ 3 ngày, báo cáo quality giữ 7 ngày. Runner native có timeout 90 phút; thời gian build không phải chỉ tiêu hiệu năng nghiên cứu phụ tải.
+
+Để phát hành phiên bản tiếp theo, ví dụ `0.1.1`:
+
+1. Sửa version đồng nhất trong `pyproject.toml` và `src/load_research/__init__.py`; cập nhật changelog/ghi chú liên quan.
+2. Commit và push `main`, kiểm tra CI đạt.
+3. Tạo tag mới trỏ commit đó:
+
+```bash
+git tag -a v0.1.1 -m "Release 0.1.1"
+git push origin v0.1.1
+```
+
+Không chạy ví dụ tag khi hai tệp vẫn ghi `0.1.0`: workflow sẽ từ chối. Không di chuyển tag `v0.1.0` đã phát hành. Workflow tạo release mới và không dùng `--clobber`; nếu release cùng tag đã tồn tại, dừng để kiểm tra thay vì thay asset. Lượt thủ công không phát hành lại tag cũ.
+
+Tệp phát hành:
+
+- `LoadResearch-X.Y.Z-macos-arm64.dmg`: chứa `LoadResearch.app` và liên kết Applications; chưa có bản Intel/universal.
+- `LoadResearch-X.Y.Z-windows-x64.zip`: giải nén, chạy `LoadResearch.dist/launcher.exe`, giữ nguyên toàn thư mục; đây là bản portable, không phải MSI.
+- Python wheel, `requirements.lock`, `requirements-build.txt`, hai `native-smoke-*.json` và `SHA256SUMS`.
+
+Smoke test gọi đúng executable trong bundle từ thư mục tạm ngoài checkout, bỏ `PYTHONPATH/PYTHONHOME/VIRTUAL_ENV`, chạy demo và xuất XLSX/PNG/SVG. Đây là kiểm tra native CLI; chưa thay thế UAT giao diện, kiểm thử worker hoặc chạy trên máy sạch không cài Python. DMG chưa ký Developer ID/notarize, Windows chưa Authenticode. Bản phát hành luôn đánh dấu thử nghiệm cho đến khi có quyết định nghiệm thu/phân phối.
+
+Nếu build/test lỗi, xem log và artifact `checks-*` trong Actions rồi sửa bằng commit mới; không hạ gate. Nếu phát hiện lỗi ở bản đã phát hành, giữ tag/asset để truy vết, sử dụng bản sao lưu dự án và phát hành bản sửa với version mới; không có cập nhật tự động dữ liệu người dùng.
+
+Nguồn: [runner của GitHub](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [quyền GITHUB_TOKEN](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token), [artifact](https://github.com/actions/upload-artifact).

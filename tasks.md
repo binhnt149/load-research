@@ -53,6 +53,12 @@ Spec: `load-research.md`. Kế hoạch: `tasks/plan.md`. `[x]` chỉ có nghĩa 
 - [ ] **E02 — AC-23 trên máy sạch Windows và macOS.** Phụ thuộc: môi trường đích/CPU và bộ cài. Nghiệm thu: cài/chạy/nhập/tính/xuất không cần Python trên cả hai OS.
 - [ ] **E03 — AC-24 quy mô đầy đủ và UAT.** Phụ thuộc: benchmark 122,64 triệu giá trị, điều kiện máy được chốt và đánh giá chuyên viên. Nghiệm thu: số đo thật so mục tiêu spec; không thay bằng benchmark nhỏ.
 
+## Tự động hoá phát hành
+
+- [x] **T25 — Công cụ kiểm tra gói phát hành.** Phụ thuộc: T24. Nghiệm thu: từ chối tag/metadata khác version, phát hiện thiếu executable, smoke chạy demo và xuất bằng chương trình đóng gói từ thư mục ngoài source. Verify: 13 test helper Red→Green; compiled executable được kiểm tra thêm trong workflow.
+- [ ] **T26 — GitHub Actions.** Phụ thuộc: T25. Nghiệm thu: lint/type/test/audit trên Windows x64 và macOS arm64; build DMG/Windows ZIP khi tag hoặc chạy thủ công; chỉ job publish có quyền ghi; tạo pre-release sau mọi gate đạt, không ghi đè release cũ. Verify: actionlint và kiểm tra workflow trên GitHub.
+- [ ] **T27 — Hướng dẫn và kiểm chứng.** Phụ thuộc: T26. Nghiệm thu: tài liệu tag/chạy thử/tải artifact; full suite pass không skip, cập nhật trạng thái CI và push workflow lên GitHub. E01/E02/E03 giữ điều kiện nghiệm thu riêng.
+
 ## Nhật ký kiểm chứng
 
 Bằng chứng Red/Green thô theo task được giữ cục bộ tại `docs/verification/`. Repository chứa báo cáo tổng hợp và JUnit cuối đã bỏ hostname. Kết quả cuối cùng và việc chưa kiểm chứng được ghi trong `docs/verification/final.md`; không thay thế task ngoài môi trường bằng dấu `[x]`.

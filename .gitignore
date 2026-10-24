@@ -35,3 +35,5 @@ docs/verification/wheel-smoke.json
 *.sqlite3
 *.duckdb
 *.duckdb.wal
+packaging/deployment/
+ci-results/

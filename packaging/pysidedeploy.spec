@@ -18,4 +18,4 @@ plugins = platforms
 [nuitka]
 macos.permissions =
 mode = standalone
-extra_args = --quiet --noinclude-qt-translations --include-package=load_research --include-package=tzdata --include-package-data=tzdata --include-package-data=matplotlib --include-package-data=sklearn
+extra_args = --quiet --jobs=2 --assume-yes-for-downloads --noinclude-qt-translations --include-package=load_research --include-package=tzdata --include-package-data=tzdata --include-package-data=matplotlib --include-package-data=sklearn
