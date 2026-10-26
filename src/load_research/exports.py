@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import xlsxwriter
 
-from load_research.domain.energy import normalize, resample_energy
+from load_research.domain.energy import convert_curve, resample_energy
 from load_research.workspace import file_hash
 
 EXCEL_MAX_ROWS = 1_048_576
@@ -69,21 +69,6 @@ def cluster_display_name(label: str) -> str:
         "unclassified": "Chưa phân loại",
         "not_segmented": "Chưa phân nhóm",
     }.get(label, label)
-
-
-def convert_curve(
-    values,
-    source_minutes: int,
-    target_minutes: int,
-    unit: str,
-    normalization: str | None = None,
-) -> np.ndarray | None:
-    energy = resample_energy(values, source_minutes, target_minutes)
-    if normalization is not None:
-        return normalize(energy, normalization)
-    if unit not in ("kW", "kWh"):
-        raise ValueError("physical output unit must be kW or kWh")
-    return energy * 60 / target_minutes if unit == "kW" else energy
 
 
 def curve_rows(

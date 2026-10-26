@@ -115,3 +115,18 @@ def interval_start(
     if parsed.second or parsed.microsecond or parsed.minute % minutes:
         raise ValueError("timestamp must be aligned to interval boundaries")
     return parsed - timedelta(minutes=minutes) if convention == "end" else parsed
+
+
+def convert_curve(
+    values,
+    source_minutes: int,
+    target_minutes: int,
+    unit: str,
+    normalization: str | None = None,
+) -> np.ndarray | None:
+    energy = resample_energy(values, source_minutes, target_minutes)
+    if normalization is not None:
+        return normalize(energy, normalization)
+    if unit not in ("kW", "kWh"):
+        raise ValueError("physical output unit must be kW or kWh")
+    return energy * 60 / target_minutes if unit == "kW" else energy
