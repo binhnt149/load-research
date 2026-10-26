@@ -163,7 +163,7 @@ def render_view(
     method = {
         "representative": "Đại diện theo loại ngày",
         "variation": "Giữ biến thiên ngày",
-    }.get(view.get("method"), f"{view['day_count']} ngày theo lịch")
+    }.get(view.get("method", ""), f"{view['day_count']} ngày theo lịch")
     organization = " ".join(view["organization_scope"].split())[:32]
     figure.suptitle(
         f"{organization} · {view.get('date', view['year_month'])} · {industries} · {kinds}\n"
