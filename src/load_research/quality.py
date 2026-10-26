@@ -113,6 +113,7 @@ class MonthQuality:
     original_coverage: float
     adjustments: list[dict]
     diagnostics: dict = field(default_factory=dict)
+    source_values: np.ndarray | None = None
 
 
 def statistical_warnings(
@@ -245,4 +246,5 @@ def repair_month(
         float(np.isfinite(original).sum() / original.size),
         adjustments,
         diagnostics,
+        grid.values,
     )

@@ -19,6 +19,7 @@ from load_research import METHOD_VERSION
 from load_research.application.models import StudyRequest
 from load_research.calendar import DayType, ResearchCalendar, month_days
 from load_research.clustering import cluster_profiles
+from load_research.daily import DailyAccumulator
 from load_research.domain.config import content_hash
 from load_research.importers.catalog import Catalog, load_billing, load_catalog
 from load_research.importers.metering import canonicalize
@@ -284,7 +285,27 @@ def _analyse_month(
                 )
             yield month
 
-    selection = select_profiles(customer_months(), calendar, request.config)
+    daily: dict[str, DailyAccumulator] = {}
+
+    def collect(month):
+        code = month.customer.industry_code
+        if request.selected_industries and code not in request.selected_industries:
+            return
+        if code not in daily:
+            daily[code] = DailyAccumulator(
+                len(month.days), 1440 // request.config.interval_minutes
+            )
+        accumulator = daily[code]
+        accumulator.add(
+            month.source_values,
+            np.stack([day.values for day in month.days]),
+            [day.eligible for day in month.days],
+            month.customer.weight,
+        )
+
+    selection = select_profiles(
+        customer_months(), calendar, request.config, on_selected=collect
+    )
     _eligible, catalog_excluded = catalog.month_customers(period)
     excluded = {**catalog_excluded, **selection.excluded}
     grouped = defaultdict(list)
@@ -380,6 +401,12 @@ def _analyse_month(
         )
     for cell in cells:
         cell["industry_name"] = catalog.industry_names.get(cell["industry_code"], "")
+        if cell["industry_code"] in daily:
+            dates = month_days(period)
+            cell["daily_data"] = daily[cell["industry_code"]].to_dict(
+                [day.isoformat() for day in dates],
+                [calendar.classify(day).value for day in dates],
+            )
     return cells, {
         "period": period,
         **quality,
@@ -463,6 +490,12 @@ def run_study(
                         journal,
                         run_id,
                     )
+                    for cell in month_cells:
+                        daily_data = cell.pop("daily_data", None)
+                        if daily_data is not None:
+                            name = f"daily-{period}-{content_hash(cell['industry_code'])[:16]}.json"
+                            workspace.save_artifact(run_id, name, daily_data)
+                            cell["daily_artifact"] = name
                     cells.extend(month_cells)
                     quality.append(month_quality)
                     progress(
@@ -504,6 +537,13 @@ def run_study(
                 "import": imported,
                 "quality": quality,
                 "cells": cells,
+                "industry_universe": {
+                    period: sorted(
+                        {link.customer.industry_code for link in catalog.links}
+                        | {industry for industry, month in billing if month == period}
+                    )
+                    for period in request.config.periods
+                },
                 "sources": workspace.read_run(run_id)["sources"],
                 "software": {
                     "python": platform.python_version(),

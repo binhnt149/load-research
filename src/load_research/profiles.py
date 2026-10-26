@@ -1,6 +1,6 @@
 """Customer-first representative curves from a shared monthly cohort."""
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 import numpy as np
@@ -29,7 +29,11 @@ class ProfileSelection:
 
 
 def select_profiles(
-    months: Iterable[MonthQuality], calendar: ResearchCalendar, config: RunConfig
+    months: Iterable[MonthQuality],
+    calendar: ResearchCalendar,
+    config: RunConfig,
+    *,
+    on_selected: Callable[[MonthQuality], None] | None = None,
 ) -> ProfileSelection:
     profiles, excluded = [], {}
     minimum = dict(zip(DayType, config.min_days, strict=True))
@@ -57,6 +61,8 @@ def select_profiles(
         if missing:
             excluded[identifier] = "insufficient_day_types:" + ",".join(missing)
             continue
+        if on_selected is not None:
+            on_selected(month)
         for kind in present:
             days = usable[kind]
             values = np.stack([day.values for day in days]).mean(axis=0)

@@ -128,7 +128,17 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
             for cluster, values in (
                 cell["result"].get(contribution_key, {}).get(kind, {}).items()
             ):
-                name = cell.get("cluster_names", {}).get(kind, {}).get(cluster, cluster)
+                name = cell.get("cluster_names", {}).get(kind, {}).get(cluster)
+                if not name:
+                    name = (
+                        "Nhóm " + cluster.removeprefix("group_")
+                        if cluster.startswith("group_")
+                        else {
+                            "inactive": "Không hoạt động",
+                            "unclassified": "Chưa phân loại",
+                            "not_segmented": "Chưa phân nhóm",
+                        }.get(cluster, cluster)
+                    )
                 append(
                     "behavior",
                     f"{code} · {DAY_TYPES[kind]} · {name}",
@@ -137,10 +147,15 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
                     day_type=kind,
                     cluster_id=cluster,
                 )
-    coverage_known = not (
-        selection.level == "organization"
-        and universe is None
-        and result.get("request", {}).get("selected_industries")
+    request = result.get("request")
+    coverage_known = (
+        selection.level != "organization"
+        or universe is not None
+        or (
+            isinstance(request, dict)
+            and "selected_industries" in request
+            and not request["selected_industries"]
+        )
     )
     if not coverage_known:
         missing.append({"industry_code": "", "reason": "unknown_industry_universe"})
@@ -178,6 +193,10 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
                 for field in ("alpha", "billing_kwh", "background_kwh")
             },
             "billing_basis": cells[code].get("billing_basis"),
+            "status": cells[code]["result"].get("status"),
+            "cohort_size": cells[code]["result"]
+            .get("diagnostics", {})
+            .get("cohort_size"),
         }
         for code in codes
         if code in cells
@@ -191,7 +210,8 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
         "day_count": days,
         "year_month": selection.period,
         "interval_minutes": selection.interval_minutes,
-        "unit": selection.unit,
+        "unit": "p.u." if selection.normalization else selection.unit,
+        "physical_unit": selection.unit,
         "normalization": selection.normalization,
         "scope": selection.scope,
         "level": selection.level,
@@ -203,4 +223,162 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
         "energy_selected_kwh": None
         if combined is None
         else float(combined.sum()) * days,
+    }
+
+
+def build_daily_view(
+    result: dict, selection: ResultSelection, daily: dict, day: str, *, method: str
+) -> dict:
+    from dataclasses import replace
+    from datetime import date
+
+    from load_research.calendar import ResearchCalendar
+    from load_research.daily import expand_daily, nullable
+    from load_research.domain.energy import normalize
+
+    calendar_day = date.fromisoformat(day)
+    if calendar_day.strftime("%Y-%m") != selection.period:
+        raise ValueError("date is outside the saved research periods")
+    kind = (
+        ResearchCalendar.from_dict(result.get("calendar", {}))
+        .classify(calendar_day)
+        .value
+    )
+    if selection.day_types and kind not in selection.day_types:
+        raise ValueError("date does not match selected day type")
+    if selection.normalization:
+        view = build_daily_view(
+            result,
+            replace(selection, normalization=None, unit="kWh"),
+            daily,
+            day,
+            method=method,
+        )
+        for row in view["series"]:
+            values = row["values"]
+            normalized = (
+                None
+                if values is None or any(v is None for v in values)
+                else normalize(values, selection.normalization)
+            )
+            row["values"] = None if normalized is None else normalized.tolist()
+        return {
+            **view,
+            "normalization": selection.normalization,
+            "unit": "p.u.",
+            "physical_unit": selection.unit,
+        }
+    view = build_result_view(result, selection)
+    missing = [
+        row for row in view["missing"] if row["reason"] == "unknown_industry_universe"
+    ]
+    series, selected_rows, source_rows, processed_rows, expanded_rows, factors = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
+    cells = {
+        cell["industry_code"]: cell
+        for cell in result["cells"]
+        if cell["year_month"] == selection.period
+    }
+    for code in view["industry_codes"]:
+        values = None
+        details = daily.get(code)
+        if details and code in cells and day in details["dates"]:
+            expanded = expand_daily(cells[code], details, selection, method=method)
+            index = details["dates"].index(day)
+            source_rows.append(expanded["source"][index])
+            processed_rows.append(expanded["processed"][index])
+            expanded_rows.append(expanded["expanded"][index])
+            values = expanded[
+                "processed" if selection.scope == "sample_portfolio" else "expanded"
+            ][index]
+            factors.append(
+                {
+                    "industry_code": code,
+                    "factor": expanded["factor"],
+                    "reason": expanded["reason"],
+                    "cohort_size": expanded["cohort_size"],
+                    "eligible": expanded["eligible"][index],
+                    "monthly_energy_kwh": expanded["monthly_energy_kwh"],
+                }
+            )
+        if values is None or any(value is None for value in values):
+            missing.append({"industry_code": code, "reason": "missing_daily_profile"})
+        selected_rows.append(values)
+        series.append(
+            {
+                "id": json.dumps(["industry", code]),
+                "kind": "industry",
+                "industry_code": code,
+                "label": code,
+                "values": values,
+            }
+        )
+
+    def total(rows):
+        if (
+            len(rows) != len(view["industry_codes"])
+            or not rows
+            or any(row is None for row in rows)
+        ):
+            return None
+        return nullable(np.sum(np.asarray(rows, dtype=float), axis=0))
+
+    overall = total(selected_rows) if not missing else None
+    series.insert(
+        0,
+        {
+            "id": "overall",
+            "kind": "overall",
+            "label": selection.name or "Chung",
+            "values": overall,
+        },
+    )
+    series.extend(
+        [
+            {
+                "id": "source",
+                "kind": "source",
+                "label": "Mẫu nguồn trước VEE",
+                "values": total(source_rows),
+            },
+            {
+                "id": "processed",
+                "kind": "processed",
+                "label": "Mẫu sau VEE",
+                "values": total(processed_rows),
+            },
+        ]
+    )
+    if selection.scope == "sample_portfolio":
+        series.append(
+            {
+                "id": "expanded",
+                "kind": "expanded",
+                "label": "Phụ tải suy rộng",
+                "values": total(expanded_rows),
+            }
+        )
+    energy = (
+        None
+        if overall is None
+        else sum(overall)
+        * (selection.interval_minutes / 60 if selection.unit == "kW" else 1)
+    )
+    return {
+        **view,
+        "series": series,
+        "date": day,
+        "method": method,
+        "daily_factors": factors,
+        "day_types": [kind],
+        "missing": missing,
+        "complete": overall is not None and not missing,
+        "day_count": 1,
+        "energy_selected_kwh": energy,
     }

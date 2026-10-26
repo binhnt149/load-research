@@ -191,3 +191,17 @@ def test_zero_consumption_is_physical_zero_and_has_no_normalized_shape():
         result, ResultSelection("2024-04", ("01", "02"), normalization="share")
     )
     assert total(normalized)["values"] is None
+
+
+def test_legacy_unknown_universe_cannot_claim_complete_organization():
+    result = study()
+    result.pop("industry_universe")
+    view = build_result_view(result, ResultSelection("2024-04", level="organization"))
+    assert not view["complete"]
+    assert any(row["reason"] == "unknown_industry_universe" for row in view["missing"])
+
+
+def test_normalized_report_metadata_never_labels_dimensionless_values_as_kw():
+    view = build_result_view(study(), ResultSelection("2024-04", normalization="mean"))
+    assert view["unit"] == "p.u."
+    assert view["physical_unit"] == "kW"
