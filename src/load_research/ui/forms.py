@@ -509,7 +509,7 @@ class ConfigForm(QWidget):
             "max_iter": "Số vòng lặp tối đa",
             "silhouette_sample": "Số mẫu tính silhouette",
             "min_cluster_size": "Số khách hàng tối thiểu/cụm",
-            "min_samples": "DBSCAN min_samples",
+            "min_samples": "Số mẫu lân cận tối thiểu DBSCAN",
             "max_dbscan_vectors": "Giới hạn vector DBSCAN",
             "memory_limit_mb": "Bộ nhớ truy vấn tối đa (MB)",
             "worker_threads": "Số luồng tính toán",
@@ -553,10 +553,10 @@ class ConfigForm(QWidget):
         self.manual_k.setSpecialValueText("Tự chọn số cụm")
         self.eps, self.seed = QLineEdit(), QLineEdit()
         layout.addRow("Số cụm đặt tay (0 = tự động)", self.manual_k)
-        layout.addRow("DBSCAN eps (bắt buộc nếu chọn DBSCAN)", self.eps)
-        layout.addRow("Seed tái lập", self.seed)
+        layout.addRow("Bán kính lân cận DBSCAN (bắt buộc)", self.eps)
+        layout.addRow("Hạt giống ngẫu nhiên để tái lập", self.seed)
         self.minimum_days = []
-        for label in ("ngày thường", "thứ Bảy", "Chủ nhật", "lễ"):
+        for label in ("ngày làm việc", "thứ Bảy", "Chủ nhật", "ngày lễ"):
             days_widget = QSpinBox()
             days_widget.setRange(1, 31)
             layout.addRow(f"Ngày dùng tối thiểu: {label}", days_widget)
@@ -694,7 +694,7 @@ class ResearchForm(QWidget):
         )
         options = QFormLayout()
         options.addRow("Sheet CMIS (trống: đầu tiên)", self.cmis_sheet)
-        options.addRow("Sheet thương phẩm", self.billing_sheet)
+        options.addRow("Trang tính thương phẩm", self.billing_sheet)
         options.addRow("Dấu phân cách CMIS/thương phẩm/lịch", self.table_delimiter)
         advanced_layout.addLayout(options)
         mapping_buttons = QHBoxLayout()

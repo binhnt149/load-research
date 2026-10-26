@@ -1,6 +1,5 @@
 """Desktop project workflow and responsive process supervision."""
 
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -24,6 +23,7 @@ from PySide6.QtWidgets import (
 from load_research.application.jobs import ResearchJob
 from load_research.application.models import StudyRequest, load_request
 from load_research.error_messages import format_error
+from load_research.presentation import event_text, format_value
 from load_research.ui.forms import ExportDialog, ResearchForm
 from load_research.ui.inspection import DayInspectionDialog
 from load_research.ui.results import ResultsView
@@ -90,6 +90,9 @@ class MainWindow(QMainWindow):
         self.results.export_requested.connect(self.export_dialog)
         self.results.inspect_requested.connect(
             lambda payload: self.start_auxiliary("inspect", payload)
+        )
+        self.results.daily_requested.connect(
+            lambda payload: self.start_auxiliary("daily", payload)
         )
         self.result_layout.addWidget(self.results)
         self.tabs.addTab(self.result_host, "3 · Kết quả")
@@ -279,6 +282,7 @@ class MainWindow(QMainWindow):
                 {
                     "verify": "Đang xác minh checksum nguồn…",
                     "inspect": "Đang truy vết dữ liệu ngày…",
+                    "daily": "Đang đọc và xác minh phụ tải từng ngày…",
                     "backup": "Đang tạo bản sao lưu…",
                 }[action]
             )
@@ -326,17 +330,15 @@ class MainWindow(QMainWindow):
             events.extend(self.job.poll())
         for event in events:
             stage = event["stage"]
-            self.log.appendPlainText(json.dumps(event, ensure_ascii=False))
+            self.log.appendPlainText(event_text(event))
             if "total" in event:
                 self.progress.setRange(0, event["total"])
                 self.progress.setValue(event["completed"])
-            self.status_label.setText(
-                event.get("message", f"{stage} · {event.get('period', '')}")
-            )
+            self.status_label.setText(event_text(event))
             if stage == "finished":
                 self.load_run(event["run_id"])
                 self.status_label.setText(
-                    f"Đã hoàn tất · {event['status']} · xem chất lượng và trạng thái từng ngành-tháng"
+                    f"Đã hoàn tất · {format_value('status', event['status'])} · xem chất lượng và trạng thái từng ngành-tháng"
                 )
             elif stage == "error":
                 self.show_error(
@@ -362,6 +364,16 @@ class MainWindow(QMainWindow):
                 )
             elif stage == "backed_up":
                 self.status_label.setText(f"Đã sao lưu: {event['destination']}")
+            elif stage == "daily_loaded":
+                if (
+                    self.current_result
+                    and event["run_id"] == self.current_result["run_id"]
+                    and event["period"] == self.results.period.currentData()
+                ):
+                    self.results.set_daily_data(event["details"])
+                    self.status_label.setText(
+                        "Đã nạp phụ tải từng ngày của tập mẫu đã chốt."
+                    )
             elif stage == "inspected":
                 self.inspection_dialog = DayInspectionDialog(event["details"], self)
                 self.inspection_dialog.show()
@@ -375,7 +387,7 @@ class MainWindow(QMainWindow):
             self.progress.setRange(0, 100)
             if self.job.process and self.job.process.exitcode not in (None, 0):
                 self.show_error(
-                    f"Worker đã dừng bất thường (mã {self.job.process.exitcode}); kiểm tra lịch sử trước khi chạy lại."
+                    f"Tiến trình xử lý đã dừng bất thường (mã {self.job.process.exitcode}); kiểm tra lịch sử trước khi chạy lại."
                 )
             self.job.close()
             self.refresh_history()
@@ -385,7 +397,7 @@ class MainWindow(QMainWindow):
         if self.workspace:
             for run in self.workspace.list_runs():
                 self.run_list.addItem(
-                    f"{run['id']} · {run['status']} · {','.join(run['config']['periods'])}"
+                    f"{run['id']} · {format_value('status', run['status'])} · {','.join(run['config']['periods'])}"
                 )
 
     def load_run(self, run_id: str) -> None:

@@ -6,6 +6,7 @@ from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QTableView, QVBoxLayout
 
+from load_research.presentation import format_value
 from load_research.ui.models import RecordsModel
 
 
@@ -16,8 +17,8 @@ class DayInspectionDialog(QDialog):
         self.resize(1000, 750)
         layout = QVBoxLayout(self)
         heading = QLabel(
-            f"KH {details['customer_id']} · {details['date']} · {details['day_type']} · run {details['run_id'][:12]}\n"
-            f"Ngày đủ điều kiện: {details['eligible']} · độ phủ gốc tháng: {details['original_month_coverage']:.2%}"
+            f"KH {details['customer_id']} · {details['date']} · {format_value('day_type', details['day_type'])} · lần {details['run_id'][:12]}\n"
+            f"Ngày đủ điều kiện: {format_value('eligible', details['eligible'])} · độ phủ gốc tháng: {format_value('original_month_coverage', details['original_month_coverage'])}"
         )
         heading.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(heading)

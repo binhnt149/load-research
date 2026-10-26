@@ -52,9 +52,18 @@ def _export_worker(
             workspace.load_artifact(run_id, "result.json"),
             workspace.list_cluster_labels(run_id),
         )
-        export_study(
-            result, Path(destination), cancelled=cancellation.is_set, **options
-        )
+        if "view_selection" in options:
+            from load_research.application.result_export import export_selection
+
+            def check():
+                if cancellation.is_set():
+                    raise ResearchCancelled("export cancelled")
+
+            export_selection(workspace, result, Path(destination), options, check)
+        else:
+            export_study(
+                result, Path(destination), cancelled=cancellation.is_set, **options
+            )
         events.put({"stage": "exported", "destination": destination})
     except ResearchCancelled:
         events.put({"stage": "cancelled"})
@@ -104,6 +113,26 @@ def _auxiliary_worker(
                 check=check,
             )
             events.put({"stage": "backed_up", "destination": payload["destination"]})
+        elif action == "daily":
+            from load_research.application.daily import load_daily
+
+            result = workspace.load_artifact(payload["run_id"], "result.json")
+            details = load_daily(
+                workspace,
+                result,
+                payload["period"],
+                tuple(payload["codes"]),
+                check=check,
+            )
+            check()
+            events.put(
+                {
+                    "stage": "daily_loaded",
+                    "details": details,
+                    "run_id": payload["run_id"],
+                    "period": payload["period"],
+                }
+            )
         elif action == "inspect":
             from datetime import date
 
@@ -172,7 +201,12 @@ class ResearchJob:
         self.process.start()
 
     def start_auxiliary(self, action: str, payload: dict) -> None:
-        if self.process is not None or action not in ("verify", "backup", "inspect"):
+        if self.process is not None or action not in (
+            "verify",
+            "backup",
+            "inspect",
+            "daily",
+        ):
             raise RuntimeError("invalid auxiliary task or reused job")
         self.process = self.context.Process(
             target=_auxiliary_worker,

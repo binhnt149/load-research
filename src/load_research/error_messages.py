@@ -5,6 +5,10 @@ import re
 from load_research.presentation import field_label
 
 MESSAGES = {
+    "inconsistent research calendar": "Các ngành có số ngày theo lịch khác nhau. Hãy dùng cùng một lịch nghiên cứu trước khi tổng hợp.",
+    "date does not match selected day type": "Ngày đã chọn không thuộc loại ngày đang lọc. Hãy chọn lại ngày lịch phù hợp.",
+    "date is outside the saved research periods": "Ngày nằm ngoài các tháng nghiên cứu đã lưu. Hãy chọn ngày trong phạm vi kết quả.",
+    "excel row limit would be exceeded; select csv-only export or a smaller scope": "Số dòng vượt giới hạn Excel. Bỏ chọn Excel để xuất CSV, hoặc thu hẹp phạm vi báo cáo.",
     "ambiguous or empty table header": "Tiêu đề có tên cột trùng hoặc trống. Mỗi cột phải có một tên riêng.",
     "table has no header": "Tệp chưa có hàng tiêu đề. Hãy bổ sung tên các cột theo mẫu.",
     "mapping references a missing source column": "Ánh xạ đang tham chiếu cột không có trong nguồn. Chọn lại đúng tên cột.",

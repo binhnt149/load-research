@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Tổng hợp nhiều ngành và loại ngày theo lịch, thành phần phụ tải có tên, kiểm tra đủ phạm vi toàn đơn vị; đường tổng và các đường so sánh dùng chung số liệu với bảng và báo cáo.
+- Biểu đồ từng ngày có mẫu nguồn/sau VEE và hai phương pháp suy rộng: lặp ngày đại diện hoặc giữ biến thiên với hệ số tháng riêng. Lưu tổng mẫu ngày kèm checksum, dựng lại lần chạy cũ từ cache đã xác minh.
+- Báo cáo GUI bằng tiếng Việt, lựa chọn 24/48 chu kỳ, kW/kWh/chuẩn hóa; biểu đồ phản hồi khi bấm và co giãn theo cửa sổ. Tài liệu tính toán đầy đủ tại `docs/results-calculations.md` và nút “Cách tính…”.
+- Lỗi nhập bằng tiếng Việt có vị trí tệp/dòng/trang tính khi xác định được; nhật ký và bảng trình bày theo thuật ngữ điện. Cấu hình Windows dùng console mode `attach` để không tạo command window mới khi mở từ Explorer, vẫn hỗ trợ CLI.
+
 ## 0.1.2 — 2026-10-25
 
 Bản thử nghiệm cải thiện giao diện và chuẩn bị dữ liệu đầu vào; giữ nguyên phương pháp `class-profile-v1`.
