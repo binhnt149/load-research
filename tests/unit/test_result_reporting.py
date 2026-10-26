@@ -221,3 +221,24 @@ def test_report_rows_and_factor_sheet_identify_period_scope_and_normalization(tm
         assert sheet.cell(2, headings.index("Năm-tháng") + 1).value == "2024-04"
     finally:
         workbook.close()
+
+
+def test_behavior_groups_with_the_same_business_name_keep_separate_table_columns():
+    from load_research.result_reporting import interval_records
+
+    result = study()
+    for cell in result["cells"]:
+        cell["cluster_names"] = {}
+        for kind, vector in cell["result"]["energy"].items():
+            cell["result"]["contributions"][kind] = {
+                "group_1": [value / 2 for value in vector],
+                "group_2": [value / 2 for value in vector],
+            }
+            cell["cluster_names"][kind] = {"group_1": "Cùng tên", "group_2": "Cùng tên"}
+    view = build_result_view(result, ResultSelection("2024-04"))
+    row = interval_records(view)[0]
+    components = [
+        value for key, value in row.items() if key.startswith("Đóng góp nhóm hành vi")
+    ]
+    assert len(components) == 8
+    assert sum(components) == pytest.approx(row["Chung"])

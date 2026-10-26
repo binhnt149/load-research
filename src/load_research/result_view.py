@@ -141,7 +141,7 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
                     )
                 append(
                     "behavior",
-                    f"{code} · {DAY_TYPES[kind]} · {name}",
+                    f"{code} · {DAY_TYPES[kind]} · [{cluster}] {name}",
                     _vector(values, 1440 // source) * counts[kind] / days,
                     industry_code=code,
                     day_type=kind,
