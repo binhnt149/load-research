@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from load_research.application.jobs import ResearchJob
 from load_research.application.models import StudyRequest, load_request
+from load_research.error_messages import format_error
 from load_research.ui.forms import ExportDialog, ResearchForm
 from load_research.ui.inspection import DayInspectionDialog
 from load_research.ui.results import ResultsView
@@ -49,6 +50,7 @@ class MainWindow(QMainWindow):
         self.job: ResearchJob | None = None
         self.current_result: dict | None = None
         self.last_error: str | None = None
+        self.last_error_details: str | None = None
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
@@ -337,7 +339,11 @@ class MainWindow(QMainWindow):
                     f"Đã hoàn tất · {event['status']} · xem chất lượng và trạng thái từng ngành-tháng"
                 )
             elif stage == "error":
-                self.show_error(event["message"])
+                self.show_error(
+                    event["message"],
+                    context=event.get("source_context"),
+                    error_type=event.get("error_type"),
+                )
             elif stage == "exported":
                 self.status_label.setText(f"Đã xuất báo cáo: {event['destination']}")
             elif stage == "cancelled":
@@ -409,10 +415,17 @@ class MainWindow(QMainWindow):
             )
             self.tabs.setCurrentIndex(0)
 
-    def show_error(self, message: str) -> None:
-        self.last_error = message
-        self.status_label.setText(f"Cần xử lý: {message}")
-        self.log.appendPlainText(message)
+    def show_error(
+        self,
+        message: str,
+        *,
+        context: dict | None = None,
+        error_type: str | None = None,
+    ) -> None:
+        self.last_error_details = message
+        self.last_error = format_error(message, context, error_type=error_type)
+        self.status_label.setText(f"Cần xử lý: {self.last_error}")
+        self.log.appendPlainText(self.last_error)
 
     def compare_selected_run(self) -> None:
         item = self.run_list.currentItem()

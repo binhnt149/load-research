@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 from load_research.application.models import SourceInput, StudyRequest
 from load_research.calendar import ResearchCalendar
 from load_research.domain.config import RunConfig, SourceOptions
+from load_research.error_messages import format_error
 from load_research.importers.tables import read_rows
 from load_research.ui.source_preview import SourcePreviewDialog
 from load_research.ui.template_dialog import TemplateDialog
@@ -290,7 +291,7 @@ class CalendarDialog(QDialog):
         try:
             self.value()
         except ValueError as error:
-            self.error.setText(str(error))
+            self.error.setText(format_error(error))
         else:
             self.accept()
 
@@ -419,6 +420,7 @@ class SourceDialog(QDialog):
         mapping_button.clicked.connect(self.edit_mapping)
         layout.addRow(mapping_button)
         self.error = QLabel()
+        self.error.setTextFormat(Qt.TextFormat.PlainText)
         self.error.setWordWrap(True)
         layout.addRow(self.error)
         buttons = QDialogButtonBox(
@@ -445,7 +447,7 @@ class SourceDialog(QDialog):
             if dialog.exec():
                 self.mapping = dialog.mapping()
         except (ValueError, OSError, StopIteration) as error:
-            self.error.setText(str(error))
+            self.error.setText(format_error(error))
 
     def value(self) -> SourceOptions:
         return replace(
@@ -469,7 +471,7 @@ class SourceDialog(QDialog):
         try:
             self.value()
         except ValueError as error:
-            self.error.setText(str(error))
+            self.error.setText(format_error(error))
         else:
             self.accept()
 
@@ -796,7 +798,7 @@ class ResearchForm(QWidget):
                 path, sheet=sheet, delimiter=delimiter, parent=self
             ).exec()
         except (ValueError, OSError) as error:
-            QMessageBox.warning(self, "Không đọc được nguồn", str(error))
+            QMessageBox.warning(self, "Không đọc được nguồn", format_error(error))
 
     def edit_calendar(self) -> None:
         dialog = CalendarDialog(self.base_calendar, self)
@@ -825,4 +827,4 @@ class ResearchForm(QWidget):
             if dialog.exec():
                 setattr(self, name, dialog.mapping())
         except (ValueError, OSError, StopIteration) as error:
-            QMessageBox.warning(self, "Không đọc được cột", str(error))
+            QMessageBox.warning(self, "Không đọc được cột", format_error(error))

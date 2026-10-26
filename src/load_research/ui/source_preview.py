@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from load_research.error_messages import format_error
 from load_research.importers.tables import excel_sheets, read_preview
 from load_research.ui.models import RecordsModel
 
@@ -117,7 +118,12 @@ class SourcePreviewDialog(QDialog):
         except Exception as error:
             # File parsers expose several exception families; keep this UI recoverable.
             self.status.setProperty("tone", "danger")
-            self.status.setText(f"Không đọc được dữ liệu: {error}")
+            self.status.setText(
+                "Không đọc được dữ liệu: "
+                + format_error(
+                    error, {"path": self.path, "sheet": self.sheet.currentText()}
+                )
+            )
         else:
             self.model.set_records(preview.rows, list(preview.columns))
             self.table.resizeColumnsToContents()
