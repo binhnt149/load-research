@@ -70,7 +70,7 @@ class MultiSelectCombo(QComboBox):
             self.set_selected(selected)
 
 
-def chart_point_text(event, canvas, *, minutes: int, unit: str) -> str | None:
+def chart_point_text(event, *, minutes: int, unit: str) -> str | None:
     if event.inaxes is None or event.xdata is None or event.button != 1:
         return None
     index = max(0, min(1440 // minutes - 1, int(round(event.xdata * 60 / minutes))))

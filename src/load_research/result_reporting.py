@@ -149,53 +149,56 @@ def render_view(
     return figure
 
 
+def _curve_metadata(view: dict, curve: dict) -> dict:
+    return {
+        "Tháng": view["year_month"],
+        "Ngày": view.get("date", ""),
+        "Phương pháp theo ngày": METHODS.get(
+            view.get("method", ""), "Đại diện theo loại ngày"
+        ),
+        "Phạm vi ngành": ", ".join(view["industry_codes"]),
+        "Phạm vi phụ tải": translated_value("profile_scope", view["scope"]),
+        "Các loại ngày đã chọn": ", ".join(
+            DAY_TYPES[kind] for kind in view["day_types"]
+        ),
+        "Chuẩn hóa": {
+            None: "Giá trị vật lý",
+            "mean": "Trung bình bằng 1",
+            "share": "Tổng bằng 1",
+            "peak": "Đỉnh bằng 1",
+        }[view["normalization"]],
+        "Mã đường": curve["id"],
+        "Loại đường biểu diễn": KINDS[curve["kind"]],
+        "Tên đường": curve["label"],
+    }
+
+
 def report_rows(view: dict, layout: str = "long") -> Iterator[dict]:
-    if layout == "wide":
-        for curve in view["series"]:
-            one = {**view, "series": [curve]}
-            row = next(report_rows(one))
-            for key in ("Chu kỳ", "Phút bắt đầu", "Giá trị"):
-                row.pop(key)
-            row.update(
-                {
-                    f"Chu kỳ {index + 1:02}": None
-                    if curve["values"] is None
-                    else curve["values"][index]
-                    for index in range(1440 // view["interval_minutes"])
-                }
-            )
-            yield row
-        return
     for curve in view["series"]:
-        for index in range(1440 // view["interval_minutes"]):
-            values = curve["values"]
+        metadata = _curve_metadata(view, curve)
+        values = curve["values"]
+        if layout == "wide":
             yield {
-                "Tháng": view["year_month"],
-                "Ngày": view.get("date", ""),
-                "Phương pháp theo ngày": METHODS.get(
-                    view.get("method", ""), "Đại diện theo loại ngày"
-                ),
-                "Phạm vi ngành": ", ".join(view["industry_codes"]),
-                "Phạm vi phụ tải": translated_value("profile_scope", view["scope"]),
-                "Các loại ngày đã chọn": ", ".join(
-                    DAY_TYPES[kind] for kind in view["day_types"]
-                ),
-                "Chuẩn hóa": {
-                    None: "Giá trị vật lý",
-                    "mean": "Trung bình bằng 1",
-                    "share": "Tổng bằng 1",
-                    "peak": "Đỉnh bằng 1",
-                }[view["normalization"]],
-                "Mã đường": curve["id"],
-                "Loại đường biểu diễn": KINDS[curve["kind"]],
-                "Tên đường": curve["label"],
-                "Chu kỳ": index + 1,
-                "Phút bắt đầu": index * view["interval_minutes"],
+                **metadata,
                 "Độ dài chu kỳ (phút)": view["interval_minutes"],
                 "Đơn vị": view["unit"],
-                "Giá trị": None if values is None else values[index],
                 "Đủ dữ liệu tổng hợp": "Có" if view["complete"] else "Không",
+                **{
+                    f"Chu kỳ {index + 1:02}": None if values is None else values[index]
+                    for index in range(1440 // view["interval_minutes"])
+                },
             }
+        else:
+            for index in range(1440 // view["interval_minutes"]):
+                yield {
+                    **metadata,
+                    "Chu kỳ": index + 1,
+                    "Phút bắt đầu": index * view["interval_minutes"],
+                    "Độ dài chu kỳ (phút)": view["interval_minutes"],
+                    "Đơn vị": view["unit"],
+                    "Giá trị": None if values is None else values[index],
+                    "Đủ dữ liệu tổng hợp": "Có" if view["complete"] else "Không",
+                }
 
 
 def export_views(

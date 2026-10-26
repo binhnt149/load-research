@@ -449,7 +449,6 @@ class ResultsView(QWidget):
         if self.current_view:
             text = chart_point_text(
                 event,
-                self.canvas,
                 minutes=self.current_view["interval_minutes"],
                 unit=self.current_view["unit"],
             )
