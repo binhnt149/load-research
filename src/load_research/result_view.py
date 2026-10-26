@@ -205,6 +205,9 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
     billing = [row["billing_kwh"] for row in factors]
     return {
         "series": series,
+        "run_id": result["run_id"],
+        "organization_scope": result["config"].get("scope", ""),
+        "quality_statuses": sorted({cell["result"]["status"] for cell in available}),
         "complete": complete,
         "industry_codes": codes,
         "day_types": kinds,

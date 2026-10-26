@@ -115,7 +115,7 @@ def render_view(
         handles, labels = axes.get_legend_handles_labels()
         legend = axes.legend(
             handles[:8],
-            [label[:70] for label in labels[:8]],
+            [" ".join(label.split())[:70] for label in labels[:8]],
             loc="upper right",
             fontsize=7,
             ncols=2,
@@ -141,8 +141,33 @@ def render_view(
     axes.set_xticks(range(0, 25, 2))
     axes.set_ylim(bottom=0)
     axes.grid(alpha=0.2)
+    codes = ",".join(view["industry_codes"][:3])
+    if len(view["industry_codes"]) > 3:
+        codes += f"… ({len(view['industry_codes'])} ngành)"
+    industries = "Toàn đơn vị" if view["level"] == "organization" else "Ngành " + codes
+    kinds = "/".join(DAY_TYPES[kind] for kind in view["day_types"])
+    scope = translated_value("profile_scope", view["scope"])
+    normalization = {
+        None: "",
+        "mean": " · TB=1",
+        "share": " · Tổng=1",
+        "peak": " · Đỉnh=1",
+    }[view["normalization"]]
+    quality = (
+        "Chưa đủ dữ liệu"
+        if not view["complete"]
+        else "Có cảnh báo / cần kiểm tra"
+        if set(view["quality_statuses"]) != {"valid"}
+        else "Hợp lệ"
+    )
+    method = {
+        "representative": "Đại diện theo loại ngày",
+        "variation": "Giữ biến thiên ngày",
+    }.get(view.get("method"), f"{view['day_count']} ngày theo lịch")
+    organization = " ".join(view["organization_scope"].split())[:32]
     figure.suptitle(
-        f"{view.get('date', view['year_month'])} · {len(view['industry_codes'])} ngành · {view['day_count']} ngày\n{METHODS.get(view.get('method', ''), 'Biểu đồ đại diện theo lịch nghiên cứu')}",
+        f"{organization} · {view.get('date', view['year_month'])} · {industries} · {kinds}\n"
+        f"{scope}{normalization} · {method} · {quality} · lần {view['run_id'][:8]}",
         fontsize=10,
         parse_math=False,
     )
@@ -151,6 +176,8 @@ def render_view(
 
 def _curve_metadata(view: dict, curve: dict) -> dict:
     return {
+        "Mã lần nghiên cứu": view["run_id"],
+        "Phạm vi đơn vị": view["organization_scope"],
         "Tháng": view["year_month"],
         "Ngày": view.get("date", ""),
         "Phương pháp theo ngày": METHODS.get(

@@ -242,3 +242,23 @@ def test_behavior_groups_with_the_same_business_name_keep_separate_table_columns
     ]
     assert len(components) == 8
     assert sum(components) == pytest.approx(row["Chung"])
+
+
+def test_standalone_chart_identifies_scope_industry_day_run_and_quality():
+    view = build_result_view(study(), ResultSelection("2024-04", ("01",), ("weekday",)))
+    figure = render_view(view, families=())
+    title = figure._suptitle.get_text()
+    for expected in (
+        "NPC",
+        "2024-04",
+        "01",
+        "Ngày làm việc",
+        "lần r",
+        "Hợp lệ",
+        "Phụ tải suy rộng",
+    ):
+        assert expected in title
+    normalized = build_result_view(
+        study(), ResultSelection("2024-04", normalization="mean")
+    )
+    assert "TB=1" in render_view(normalized)._suptitle.get_text()
