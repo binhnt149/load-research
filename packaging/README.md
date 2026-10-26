@@ -14,6 +14,8 @@ Wheel không kèm Python/Qt. Muốn cài ngoại tuyến cần chuẩn bị whee
 
 ## Native trên chính hệ điều hành đích
 
+Windows dùng `--windows-console-mode=attach`: mở ứng dụng từ Explorer không tạo cửa sổ dòng lệnh mới; khi gọi CLI từ terminal có sẵn, chương trình dùng console hiện hữu. Đây là tuỳ chọn của Nuitka 4.1.1 đã đối chiếu bằng `python -m nuitka --help`. CLI redirect và tiến trình nền phải tiếp tục vượt qua native smoke trên Windows.
+
 `pysidedeploy.spec` dựa trên template PySide6 6.12.0; công cụ build được khóa trong `requirements-build.txt`. Chạy deploy từ thư mục `packaging` để đường dẫn tương đối trong spec được giải quyết đúng. Build giới hạn 2 compiler job và cho phép Nuitka tải công cụ phụ trợ mà nó yêu cầu; không bỏ qua lỗi/cảnh báo kiểm chứng.
 
 ```bash
