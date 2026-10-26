@@ -34,3 +34,20 @@ def test_display_formats_fractions_and_unavailable_data_explicitly():
     assert format_value("estimated_fraction", 0.125) == "12,5%"
     assert format_value("billing_kwh", 1234.5) == "1.234,5"
     assert format_value("alpha", None) == "—"
+
+
+def test_all_saved_method_parameters_have_vietnamese_labels():
+    from load_research.domain.config import RunConfig
+
+    config = RunConfig(periods=("2024-02",), scope="NPC")
+    assert not [key for key in config.to_dict() if field_label(key) == key]
+
+
+def test_task_log_uses_vietnamese_status_without_raw_worker_schema():
+    from load_research.presentation import event_text
+
+    text = event_text(
+        {"stage": "finished", "run_id": "abc", "status": "completed_with_warnings"}
+    )
+    assert "Hoàn thành" in text and "cảnh báo" in text
+    assert "stage" not in text and "completed_with_warnings" not in text

@@ -14,6 +14,7 @@ FIELDS = {
     "period": "Năm-tháng",
     "periods": "Các tháng nghiên cứu",
     "day_type": "Loại ngày",
+    "day_types": "Các loại ngày",
     "date": "Ngày",
     "customer_id": "Mã khách hàng",
     "meter_id": "Mã công tơ",
@@ -101,6 +102,19 @@ FIELDS = {
     "calendar": "Lịch nghiên cứu",
     "request": "Khai báo nguồn dữ liệu",
     "software": "Phiên bản phần mềm",
+    "min_cluster_customers": "Cỡ mẫu tối thiểu để phân cụm",
+    "algorithm": "Thuật toán phân cụm",
+    "n_init": "Số lần khởi tạo K-Means",
+    "max_iter": "Số vòng lặp tối đa",
+    "silhouette_sample": "Số mẫu đánh giá độ tách biệt cụm",
+    "silhouette_min": "Độ tách biệt cụm tối thiểu",
+    "silhouette_tie": "Ngưỡng hòa độ tách biệt cụm",
+    "min_cluster_size": "Số khách hàng tối thiểu mỗi cụm",
+    "max_dbscan_vectors": "Số hình dạng tối đa cho DBSCAN",
+    "factor": "Hệ số suy rộng theo ngày",
+    "monthly_energy_kwh": "Điện năng chuỗi suy rộng cả tháng (kWh)",
+    "sample_billing_kwh": "Điện năng CMIS mẫu (kWh)",
+    "sample_billing_basis": "Cơ sở kỳ CMIS mẫu",
 }
 DAY_TYPES = {
     "weekday": "Ngày làm việc",
@@ -130,6 +144,12 @@ STATUSES = {
     "zero_billing_with_positive_sample": "Thương phẩm bằng 0 trong khi mẫu có tiêu thụ",
 }
 REASONS = {
+    "missing_profile": "Chưa có đường phụ tải hợp lệ",
+    "missing_daily_profile": "Chưa có đường suy rộng ngày hợp lệ",
+    "unknown_industry_universe": "Chưa xác minh đủ danh mục ngành toàn đơn vị",
+    "incomplete_cohort_days": "Chuỗi ngày của tập mẫu chung chưa đủ điều kiện",
+    "zero_sample_with_positive_billing": "Mẫu bằng 0 nhưng thương phẩm dương",
+    "missing_billing": "Thiếu điện năng thương phẩm",
     "insufficient_original_coverage": "Độ phủ dữ liệu nguồn chưa đạt ngưỡng",
     "partial_month_or_changed_industry_weight": "Không đủ hiệu lực trọn tháng hoặc đổi ngành/trọng số",
     "period_basis_unconfirmed_or_incomplete_mdms": "Chưa xác nhận cùng kỳ hoặc dữ liệu MDMS chưa đủ tháng",
@@ -153,6 +173,7 @@ METHODS = {
     "like_day": "Bù bằng ngày tương đồng",
     "representative": "Suy rộng theo loại ngày",
     "daily_variation": "Suy rộng giữ biến thiên ngày",
+    "variation": "Suy rộng giữ biến thiên ngày",
 }
 FRACTIONS = {
     "estimated_fraction",
@@ -173,6 +194,8 @@ def field_label(key: str) -> str:
 def translated_value(key: str, value: object) -> object:
     if isinstance(value, bool):
         return "Có" if value else "Không"
+    if key == "day_types" and isinstance(value, (tuple, list)):
+        return ", ".join(str(DAY_TYPES.get(kind, kind)) for kind in value)
     if not isinstance(value, str):
         return value
     mapping = (
@@ -206,3 +229,28 @@ def format_value(key: str, value: object) -> str:
         text = f"{value * 100:.6g}%" if key in FRACTIONS else f"{value:,.6g}"
         return text.replace(",", "\0").replace(".", ",").replace("\0", ".")
     return str(value)
+
+
+def event_text(event: dict) -> str:
+    stages = {
+        "started": "Bắt đầu nghiên cứu",
+        "import": "Đang nhập dữ liệu đo đếm",
+        "cache": "Đã xác minh dữ liệu chuẩn",
+        "analysis": "Đang phân tích",
+        "finished": "Đã hoàn tất nghiên cứu",
+        "exported": "Đã xuất báo cáo",
+        "cancelled": "Đã hủy tác vụ",
+        "error": "Tác vụ cần kiểm tra lại",
+        "sources_verified": "Đã xác minh tệp nguồn",
+        "backed_up": "Đã sao lưu",
+        "inspected": "Đã truy vết dữ liệu ngày",
+        "daily_loaded": "Đã nạp phụ tải từng ngày",
+    }
+    parts = [stages.get(event.get("stage", ""), "Đang xử lý")]
+    if event.get("period"):
+        parts.append(event["period"])
+    if "total" in event:
+        parts.append(f"{event.get('completed', 0)}/{event['total']}")
+    if event.get("status"):
+        parts.append(format_value("status", event["status"]))
+    return " · ".join(parts)

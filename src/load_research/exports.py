@@ -485,7 +485,11 @@ def export_study(
                 list(members[0]) if members else ["customer_id"],
                 members,
             )
-        (staging / "methodology.md").write_text(_methodology(result), encoding="utf-8")
+        from load_research.methodology import CALCULATIONS
+
+        (staging / "methodology.md").write_text(
+            CALCULATIONS + "\n\n" + _methodology(result), encoding="utf-8"
+        )
         (staging / "run-config.json").write_text(
             json.dumps(
                 _portable_request(result), ensure_ascii=False, indent=2, allow_nan=False
