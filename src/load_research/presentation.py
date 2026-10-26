@@ -1,0 +1,208 @@
+"""Vietnamese presentation labels; stored keys and identifiers stay unchanged."""
+
+import math
+import re
+
+FIELDS = {
+    "run_id": "Mã lần nghiên cứu",
+    "organization_scope": "Phạm vi đơn vị",
+    "organization_code": "Mã đơn vị",
+    "scope": "Phạm vi đơn vị",
+    "industry_code": "Mã ngành nghề",
+    "industry_name": "Tên ngành nghề",
+    "year_month": "Năm-tháng",
+    "period": "Năm-tháng",
+    "periods": "Các tháng nghiên cứu",
+    "day_type": "Loại ngày",
+    "date": "Ngày",
+    "customer_id": "Mã khách hàng",
+    "meter_id": "Mã công tơ",
+    "measurement_point_id": "Mã điểm đo",
+    "profile_scope": "Phạm vi phụ tải",
+    "profile_kind": "Loại đường biểu diễn",
+    "cluster_id": "Mã nhóm hành vi",
+    "cluster_name": "Tên nhóm hành vi",
+    "interval_minutes": "Độ dài chu kỳ (phút)",
+    "unit": "Đơn vị",
+    "result_status": "Trạng thái kết quả",
+    "status": "Trạng thái",
+    "reason": "Nguyên nhân",
+    "slot_index": "Chu kỳ",
+    "start_time": "Bắt đầu chu kỳ",
+    "end_time": "Kết thúc chu kỳ",
+    "value": "Giá trị",
+    "weight": "Trọng số mẫu",
+    "sampling_weight": "Trọng số mẫu",
+    "days_used": "Số ngày đủ điều kiện",
+    "estimated_fraction": "Tỷ lệ chu kỳ ước lượng",
+    "unknown_fraction": "Tỷ lệ chu kỳ chưa rõ chất lượng",
+    "sample_energy_share": "Tỷ trọng điện năng mẫu",
+    "coverage": "Độ phủ dữ liệu nguồn",
+    "original_coverage": "Độ phủ dữ liệu nguồn",
+    "original_month_coverage": "Độ phủ nguồn toàn tháng",
+    "load_factor": "Hệ số phụ tải",
+    "customers": "Số khách hàng",
+    "customer_count": "Số khách hàng",
+    "cohort_size": "Số khách hàng trong tập mẫu chung",
+    "sample_daily_kwh": "Điện năng ngày tập mẫu (kWh)",
+    "peak_slot": "Chu kỳ phụ tải cực đại",
+    "billing_kwh": "Điện năng thương phẩm (kWh)",
+    "billing_energy": "Điện năng thương phẩm",
+    "billing_basis": "Cơ sở kỳ thương phẩm",
+    "basis": "Cơ sở kỳ đối soát",
+    "background_kwh": "Điện năng nền mẫu theo lịch tháng S (kWh)",
+    "alpha": "Hệ số suy rộng α",
+    "beta": "Hệ số suy rộng chuỗi ngày β",
+    "balance_error_kwh": "Sai lệch cân bằng điện năng (kWh)",
+    "component_error_kwh": "Sai lệch tổng đóng góp (kWh)",
+    "expected_intervals": "Số chu kỳ dự kiến",
+    "original_valid": "Số chu kỳ nguồn hợp lệ",
+    "estimated_intervals": "Số chu kỳ ước lượng",
+    "unknown_source_quality": "Số chu kỳ chưa rõ chất lượng nguồn",
+    "valid_days": "Số ngày đủ điều kiện",
+    "adjustments": "Số giá trị được bù",
+    "mad_outliers": "Số cảnh báo ngoại lai MAD",
+    "zero_days": "Số ngày không tiêu thụ điện",
+    "flat_days": "Số ngày phụ tải không đổi",
+    "cmis_kwh": "Điện năng CMIS mẫu (kWh)",
+    "mdms_original_kwh": "Điện năng nguồn MDMS (kWh)",
+    "difference_kwh": "Chênh lệch điện năng (kWh)",
+    "original_kwh": "Điện năng nguồn (kWh)",
+    "repaired_kwh": "Điện năng sau xử lý (kWh)",
+    "estimated": "Giá trị ước lượng",
+    "repair_blocked": "Không cho phép bù",
+    "method": "Phương pháp",
+    "donor_dates": "Ngày nguồn dùng bù",
+    "eligible": "Đủ điều kiện",
+    "min_customers": "Cỡ mẫu tối thiểu",
+    "min_days": "Số ngày tối thiểu theo loại ngày",
+    "min_original_coverage": "Độ phủ nguồn tối thiểu",
+    "max_estimated_fraction": "Tỷ lệ ước lượng tối đa",
+    "max_linear_minutes": "Độ dài thiếu tối đa để nội suy (phút)",
+    "max_like_minutes": "Độ dài thiếu tối đa để bù tương đồng (phút)",
+    "min_donors": "Số ngày nguồn bù tối thiểu",
+    "donor_scale_min": "Hệ số hiệu chỉnh ngày nguồn nhỏ nhất",
+    "donor_scale_max": "Hệ số hiệu chỉnh ngày nguồn lớn nhất",
+    "donor_common_fraction": "Tỷ lệ chu kỳ chung tối thiểu",
+    "mad_factor": "Hệ số cảnh báo MAD",
+    "mad_min_days": "Số ngày tối thiểu để đánh giá MAD",
+    "clustering": "Thuật toán phân cụm",
+    "manual_k": "Số nhóm cố định",
+    "k_min": "Số nhóm nhỏ nhất",
+    "k_max": "Số nhóm lớn nhất",
+    "min_cluster_fraction": "Tỷ lệ khách hàng tối thiểu mỗi nhóm",
+    "eps": "Bán kính lân cận DBSCAN",
+    "min_samples": "Số mẫu lân cận tối thiểu DBSCAN",
+    "seed": "Hạt giống ngẫu nhiên",
+    "random_seed": "Hạt giống ngẫu nhiên",
+    "timezone": "Múi giờ",
+    "memory_limit_mb": "Giới hạn bộ nhớ (MB)",
+    "worker_threads": "Số luồng xử lý",
+    "calendar": "Lịch nghiên cứu",
+    "request": "Khai báo nguồn dữ liệu",
+    "software": "Phiên bản phần mềm",
+}
+DAY_TYPES = {
+    "weekday": "Ngày làm việc",
+    "saturday": "Thứ Bảy",
+    "sunday": "Chủ nhật",
+    "holiday": "Ngày lễ",
+}
+STATUSES = {
+    "valid": "Hợp lệ",
+    "valid_with_warnings": "Hợp lệ, có cảnh báo",
+    "completed": "Hoàn thành",
+    "completed_with_warnings": "Hoàn thành, có cảnh báo",
+    "partial": "Kết quả chưa đầy đủ",
+    "preview_insufficient_samples": "Xem tham khảo: chưa đủ cỡ mẫu",
+    "no_eligible_samples": "Không có mẫu đủ điều kiện",
+    "missing_billing": "Thiếu điện năng thương phẩm",
+    "no_positive_shape": "Không có hình dạng phụ tải dương để suy rộng",
+    "needs_review": "Cần kiểm tra lại",
+    "failed": "Không hoàn thành",
+    "cancelled": "Đã hủy",
+    "running": "Đang xử lý",
+    "draft": "Chưa chạy",
+    "comparable": "Đủ điều kiện đối soát",
+    "available": "Có dữ liệu",
+    "N/A": "Không áp dụng / chưa đủ dữ liệu",
+    "insufficient_samples": "Chưa đủ cỡ mẫu",
+    "zero_billing_with_positive_sample": "Thương phẩm bằng 0 trong khi mẫu có tiêu thụ",
+}
+REASONS = {
+    "insufficient_original_coverage": "Độ phủ dữ liệu nguồn chưa đạt ngưỡng",
+    "partial_month_or_changed_industry_weight": "Không đủ hiệu lực trọn tháng hoặc đổi ngành/trọng số",
+    "period_basis_unconfirmed_or_incomplete_mdms": "Chưa xác nhận cùng kỳ hoặc dữ liệu MDMS chưa đủ tháng",
+    "insufficient_daily_cohort": "Chuỗi ngày của tập mẫu chung chưa đủ điều kiện",
+}
+BASES = {
+    "calendar_month": "Tháng dương lịch",
+    "billing_label_month": "Tháng ghi sổ thương phẩm",
+}
+SCOPES = {
+    "industry_scaled": "Phụ tải suy rộng",
+    "sample_portfolio": "Phụ tải tập mẫu",
+    "overall": "Đường phụ tải tổng hợp",
+    "cluster_contribution": "Đóng góp nhóm hành vi",
+    "normalized_shape": "Đường phụ tải chuẩn hóa",
+    "dimensionless": "Không thứ nguyên",
+}
+METHODS = {
+    "source": "Dữ liệu nguồn",
+    "linear": "Nội suy tuyến tính",
+    "like_day": "Bù bằng ngày tương đồng",
+    "representative": "Suy rộng theo loại ngày",
+    "daily_variation": "Suy rộng giữ biến thiên ngày",
+}
+FRACTIONS = {
+    "estimated_fraction",
+    "unknown_fraction",
+    "sample_energy_share",
+    "load_factor",
+    "coverage",
+    "original_coverage",
+    "original_month_coverage",
+}
+
+
+def field_label(key: str) -> str:
+    match = re.fullmatch(r"slot_(\d+)", key)
+    return f"Chu kỳ {int(match[1]):02}" if match else FIELDS.get(key, key)
+
+
+def translated_value(key: str, value: object) -> object:
+    if isinstance(value, bool):
+        return "Có" if value else "Không"
+    if not isinstance(value, str):
+        return value
+    mapping = (
+        DAY_TYPES
+        if key == "day_type"
+        else STATUSES
+        if key in ("status", "result_status")
+        else BASES
+        if key in ("billing_basis", "basis", "sample_billing_basis")
+        else SCOPES
+        if key in ("profile_scope", "profile_kind")
+        else METHODS
+        if key == "method"
+        else REASONS
+        if key == "reason"
+        else {}
+    )
+    if key == "reason" and value.startswith("insufficient_day_types:"):
+        kinds = value.partition(":")[2].split(",")
+        return "Chưa đủ ngày theo loại: " + ", ".join(
+            DAY_TYPES.get(k, k) for k in kinds
+        )
+    return mapping.get(value, value)
+
+
+def format_value(key: str, value: object) -> str:
+    value = translated_value(key, value)
+    if value is None or isinstance(value, float) and not math.isfinite(value):
+        return "—"
+    if isinstance(value, float):
+        text = f"{value * 100:.6g}%" if key in FRACTIONS else f"{value:,.6g}"
+        return text.replace(",", "\0").replace(".", ",").replace("\0", ".")
+    return str(value)

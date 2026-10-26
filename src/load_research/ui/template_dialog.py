@@ -41,7 +41,8 @@ class TemplateDialog(QDialog):
         self.guidance.setWordWrap(True)
         layout.addWidget(self.guidance)
         tabs = self.tabs = QTabWidget()
-        self.example_model, self.field_model = RecordsModel(self), RecordsModel(self)
+        self.example_model = RecordsModel(self, localized=False)
+        self.field_model = RecordsModel(self)
         self.example_table, self.field_table = QTableView(), QTableView()
         for name, model in (
             ("Dữ liệu minh hoạ", self.example_model),

@@ -2,12 +2,15 @@
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
+from load_research.presentation import field_label, format_value
+
 EMPTY_INDEX = QModelIndex()
 
 
 class RecordsModel(QAbstractTableModel):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, *, localized: bool = True) -> None:
         super().__init__(parent)
+        self.localized = localized
         self.records: list[dict] = []
         self.columns: list[str] = []
 
@@ -32,6 +35,8 @@ class RecordsModel(QAbstractTableModel):
             return None
         value = self.records[index.row()].get(self.columns[index.column()])
         if role == Qt.ItemDataRole.DisplayRole:
+            if self.localized:
+                return format_value(self.columns[index.column()], value)
             if value is None:
                 return "N/A"
             return f"{value:,.6g}" if isinstance(value, float) else str(value)
@@ -45,7 +50,11 @@ class RecordsModel(QAbstractTableModel):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         return (
-            self.columns[section]
+            (
+                field_label(self.columns[section])
+                if self.localized
+                else self.columns[section]
+            )
             if orientation == Qt.Orientation.Horizontal
             else section + 1
         )

@@ -82,7 +82,7 @@ class SourcePreviewDialog(QDialog):
         self.status.setTextFormat(Qt.TextFormat.PlainText)
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
-        self.model = RecordsModel(self)
+        self.model = RecordsModel(self, localized=False)
         self.table = QTableView()
         self.table.setModel(self.model)
         self.table.setAlternatingRowColors(True)
