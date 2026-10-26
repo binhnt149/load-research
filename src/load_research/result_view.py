@@ -188,6 +188,7 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
     factors = [
         {
             "industry_code": code,
+            "year_month": selection.period,
             **{
                 field: cells[code]["result"].get(field)
                 for field in ("alpha", "billing_kwh", "background_kwh")

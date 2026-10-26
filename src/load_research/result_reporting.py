@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 
 from load_research.error_messages import import_issue_rows
 from load_research.exports import _portable_request, safe_csv_text
-from load_research.presentation import field_label, translated_value
+from load_research.presentation import DAY_TYPES, field_label, translated_value
 from load_research.workspace import file_hash
 
 KINDS = {
@@ -176,6 +176,16 @@ def report_rows(view: dict, layout: str = "long") -> Iterator[dict]:
                     view.get("method", ""), "Đại diện theo loại ngày"
                 ),
                 "Phạm vi ngành": ", ".join(view["industry_codes"]),
+                "Phạm vi phụ tải": translated_value("profile_scope", view["scope"]),
+                "Các loại ngày đã chọn": ", ".join(
+                    DAY_TYPES[kind] for kind in view["day_types"]
+                ),
+                "Chuẩn hóa": {
+                    None: "Giá trị vật lý",
+                    "mean": "Trung bình bằng 1",
+                    "share": "Tổng bằng 1",
+                    "peak": "Đỉnh bằng 1",
+                }[view["normalization"]],
                 "Mã đường": curve["id"],
                 "Loại đường biểu diễn": KINDS[curve["kind"]],
                 "Tên đường": curve["label"],

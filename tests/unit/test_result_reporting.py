@@ -198,3 +198,26 @@ def test_export_members_obey_selected_day_type_and_behavior_group(tmp_path):
         rows = list(csv.DictReader(stream))
     assert [row["Mã khách hàng"] for row in rows] == ["001"]
     assert rows[0]["Loại ngày"] == "Ngày làm việc"
+
+
+def test_report_rows_and_factor_sheet_identify_period_scope_and_normalization(tmp_path):
+    import openpyxl
+
+    view = build_result_view(
+        study(),
+        ResultSelection("2024-04", scope="sample_portfolio", normalization="mean"),
+    )
+    output = export_views(study(), [view], tmp_path / "metadata")
+    with (output / "profiles.csv").open(encoding="utf-8-sig") as stream:
+        row = next(csv.DictReader(stream))
+    assert row["Phạm vi phụ tải"] == "Phụ tải tập mẫu"
+    assert row["Chuẩn hóa"] == "Trung bình bằng 1"
+    assert "Ngày làm việc" in row["Các loại ngày đã chọn"]
+    workbook = openpyxl.load_workbook(output / "profiles.xlsx", read_only=True)
+    try:
+        sheet = workbook["Hệ số và cân bằng"]
+        headings = [cell.value for cell in next(sheet.rows)]
+        assert "Năm-tháng" in headings
+        assert sheet.cell(2, headings.index("Năm-tháng") + 1).value == "2024-04"
+    finally:
+        workbook.close()
