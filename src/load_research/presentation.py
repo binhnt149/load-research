@@ -5,6 +5,11 @@ import re
 
 FIELDS = {
     "run_id": "Mã lần nghiên cứu",
+    "source_name": "Tệp nguồn",
+    "source_row": "Dòng nguồn",
+    "source_slot": "Chu kỳ nguồn",
+    "message": "Thông báo và hướng xử lý",
+    "policy": "Chính sách xử lý",
     "organization_scope": "Phạm vi đơn vị",
     "organization_code": "Mã đơn vị",
     "scope": "Phạm vi đơn vị",

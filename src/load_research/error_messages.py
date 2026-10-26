@@ -165,3 +165,26 @@ def format_error(
     if location.get("row") is not None:
         coordinates.append(f"dòng {location['row']}")
     return (" · ".join(coordinates) + ": " if coordinates else "") + cause
+
+
+def import_issue_rows(result: dict) -> list[dict]:
+    sources = {source["sha256"]: source["path"] for source in result.get("sources", [])}
+    return [
+        {
+            "source_name": str(sources.get(issue.get("source_id"), "Nguồn MDMS"))
+            .replace("\\", "/")
+            .rsplit("/", 1)[-1],
+            "source_row": issue.get("source_row"),
+            "source_slot": issue.get("source_slot"),
+            "message": format_error(
+                issue["reason"],
+                {
+                    "path": sources.get(issue.get("source_id")),
+                    "row": issue.get("source_row"),
+                    "sheet": issue.get("source_sheet"),
+                },
+            ),
+            "policy": "Từ chối cả dòng",
+        }
+        for issue in result.get("import", {}).get("issues_preview", [])
+    ]

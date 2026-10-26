@@ -11,6 +11,7 @@ import numpy as np
 import xlsxwriter
 from matplotlib.figure import Figure
 
+from load_research.error_messages import import_issue_rows
 from load_research.exports import _portable_request, safe_csv_text
 from load_research.presentation import field_label, translated_value
 from load_research.workspace import file_hash
@@ -338,6 +339,9 @@ def export_views(
                         dpi=150,
                     )
                 figure.clear()
+        write_summary_csv(
+            staging / "import-issues.csv", import_issue_rows(result), check
+        )
         write_summary_csv(
             staging / "quality-summary.csv",
             [

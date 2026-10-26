@@ -66,6 +66,7 @@ def canonicalize(
         context: dict = {
             "source_id": source_id,
             "source_row": row_number,
+            "source_sheet": row.get("_source_sheet"),
             "source_slot": None,
             "policy": "reject_entire_row",
         }

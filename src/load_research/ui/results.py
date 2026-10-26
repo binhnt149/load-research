@@ -19,12 +19,13 @@ from PySide6.QtWidgets import (
     QTableView,
     QTabWidget,
     QTextBrowser,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from load_research.calendar import ResearchCalendar, month_days
-from load_research.error_messages import format_error
+from load_research.error_messages import format_error, import_issue_rows
 from load_research.exports import apply_annotations, cluster_display_name, convert_curve
 from load_research.presentation import DAY_TYPES, field_label, format_value
 from load_research.result_reporting import interval_records, render_view
@@ -52,6 +53,8 @@ class ResultsView(QWidget):
         self.daily_data: dict = {}
         self.current_view: dict | None = None
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setSpacing(4)
         self.summary = QLabel("Chưa có kết quả")
         self.summary.setTextFormat(Qt.TextFormat.PlainText)
         self.summary.setWordWrap(True)
@@ -140,13 +143,28 @@ class ResultsView(QWidget):
         self.point_label.setTextFormat(Qt.TextFormat.PlainText)
         self.point_label.setWordWrap(True)
         self.point_label.setMaximumHeight(44)
-        layout.addWidget(self.point_label)
+        point_row = QHBoxLayout()
+        point_row.addWidget(self.point_label, 1)
+        self.table_toggle = QToolButton()
+        self.table_toggle.setText("Bảng")
+        self.table_toggle.setAccessibleName("Mở rộng bảng số liệu")
+        self.table_toggle.setToolTip(
+            "Ẩn/hiện biểu đồ để mở rộng bảng số liệu trên cửa sổ nhỏ"
+        )
+        point_row.addWidget(self.table_toggle)
+        layout.addLayout(point_row)
         splitter = QSplitter(Qt.Orientation.Vertical)
         self.canvas = FigureCanvasQTAgg(Figure(figsize=(10, 4)))
         self.canvas.setMinimumHeight(180)
+        self.table_toggle.clicked.connect(
+            lambda: self.canvas.setVisible(not self.canvas.isVisible())
+        )
         self.canvas.mpl_connect("button_press_event", self.show_chart_point)
         splitter.addWidget(self.canvas)
         tabs = QTabWidget()
+        tabs.setUsesScrollButtons(True)
+        tabs.setElideMode(Qt.TextElideMode.ElideRight)
+        tabs.tabBar().setExpanding(False)
         tabs.setMinimumHeight(32)
         splitter.setChildrenCollapsible(False)
         (
@@ -156,6 +174,7 @@ class ResultsView(QWidget):
             self.excluded_model,
         ) = [RecordsModel(self) for _ in range(4)]
         self.factors_model, self.missing_model = RecordsModel(self), RecordsModel(self)
+        self.import_model = RecordsModel(self)
         self.statistics_model, self.reconciliation_model = (
             RecordsModel(self),
             RecordsModel(self),
@@ -164,6 +183,7 @@ class ResultsView(QWidget):
             ("Chu kỳ", self.table_model),
             ("Hệ số suy rộng", self.factors_model),
             ("Dữ liệu còn thiếu", self.missing_model),
+            ("Nhập MDMS toàn đợt (tối đa 1.000 lỗi)", self.import_model),
             ("Chất lượng toàn tháng", self.quality_model),
             ("Khách hàng / nhóm", self.members_model),
             ("Khách hàng bị loại toàn tháng", self.excluded_model),
@@ -220,6 +240,11 @@ class ResultsView(QWidget):
             widget.currentIndexChanged.connect(self.render_results)
         self.components.toggled.connect(self.render_results)
         self.stacked.toggled.connect(self.render_results)
+        for control in self.findChildren(QComboBox):
+            control.setMinimumContentsLength(8)
+            control.setSizeAdjustPolicy(
+                QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+            )
 
     @staticmethod
     def fill(widget: QComboBox, items: list[tuple[str, object]]) -> None:
@@ -241,6 +266,7 @@ class ResultsView(QWidget):
         self.result, self.annotations, self.comparison = result, annotations or [], None
         self.daily_data = {}
         self.current_view = None
+        self.import_model.set_records(import_issue_rows(result))
         source_minutes = result["config"]["interval_minutes"]
         self.fill(
             self.resolution,

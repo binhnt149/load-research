@@ -85,3 +85,25 @@ def test_day_type_selection_refreshes_dates_using_saved_calendar(qtbot):
     view.day_type.set_selected(("saturday",))
     assert view.date.currentData() == "2024-02-05"
     assert view.date.findData("2024-02-03") == -1
+
+
+def test_rejected_mdms_rows_explain_cause_and_source_coordinates_in_vietnamese(qtbot):
+    result = result_data()
+    result["sources"] = [{"path": "/data/mdms.csv", "sha256": "abc"}]
+    result["import"] = {
+        "issues_preview": [
+            {
+                "source_id": "abc",
+                "source_row": 8,
+                "source_slot": 2,
+                "reason": "measurement must be finite and non-negative",
+            }
+        ]
+    }
+    view = ResultsView()
+    qtbot.addWidget(view)
+    view.set_result(result)
+    row = view.import_model.records[0]
+    assert "mdms.csv" in row["message"] and "dòng 8" in row["message"]
+    assert "không âm" in row["message"]
+    assert "measurement must" not in row["message"]

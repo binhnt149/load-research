@@ -52,6 +52,12 @@ def test_result_chart_labels_and_controls_fit_after_resize_and_option_changes(
     window.tabs.setCurrentWidget(window.result_host)
     window.show()
     window.resize(*size)
+    assert window.minimumSizeHint().width() <= size[0], (
+        window.minimumSizeHint().toTuple()
+    )
+    assert window.minimumSizeHint().height() <= size[1], (
+        window.minimumSizeHint().toTuple()
+    )
     qtbot.waitUntil(lambda: window.size().toTuple() == size)
     qtbot.wait(1)
     assert_chart_and_controls_fit(window)
@@ -73,4 +79,46 @@ def test_result_chart_labels_and_controls_fit_after_resize_and_option_changes(
     qtbot.wait(1)
     window.results.set_resolution(60)
     qtbot.wait(1)
+    assert_chart_and_controls_fit(window)
+
+
+def test_daily_chart_with_point_values_fits_small_window(qtbot):
+    import copy
+
+    from matplotlib.backend_bases import MouseEvent
+
+    result = result_data()
+    other = copy.deepcopy(result["cells"][0])
+    other["industry_code"] = "02"
+    result["cells"].append(other)
+    window = MainWindow()
+    qtbot.addWidget(window)
+    view = window.results
+    view.set_result(result)
+    view.industry.set_selected(("01", "02"))
+    window.tabs.setCurrentWidget(window.result_host)
+    window.show()
+    window.resize(1024, 768)
+    view.mode.setCurrentIndex(view.mode.findData("daily"))
+    view.set_daily_data(
+        {
+            code: {
+                "dates": ["2024-02-01"],
+                "day_types": ["weekday"],
+                "source": [[10] * 48],
+                "processed": [[20] * 48],
+                "eligible": [True],
+                "cohort_size": 1,
+            }
+            for code in ("01", "02")
+        }
+    )
+    view.canvas.draw()
+    axes = view.canvas.figure.axes[0]
+    x, y = axes.transData.transform((0, 40))
+    view.canvas.callbacks.process(
+        "button_press_event",
+        MouseEvent("button_press_event", view.canvas, x, y, button=1),
+    )
+    qtbot.waitUntil(lambda: window.size().toTuple() == (1024, 768))
     assert_chart_and_controls_fit(window)
