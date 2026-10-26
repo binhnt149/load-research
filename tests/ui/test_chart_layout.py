@@ -2,10 +2,19 @@
 
 import pytest
 from PySide6.QtCore import QPoint, QRect
+from PySide6.QtGui import QFontDatabase, QFontMetrics
 from PySide6.QtWidgets import QCheckBox, QComboBox, QPushButton
 from test_results import result_data
 
 from load_research.ui.window import MainWindow
+
+
+def test_gui_checks_have_real_fonts_instead_of_box_fallback(qapp):
+    assert QFontDatabase.families(), "Qt did not discover any fonts"
+    metrics = QFontMetrics(
+        QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)
+    )
+    assert metrics.horizontalAdvance("iii") < metrics.horizontalAdvance("WWW")
 
 
 def layout_sizes(widget):
@@ -76,10 +85,25 @@ def test_result_chart_labels_and_controls_fit_after_resize_and_option_changes(
     window.tabs.setCurrentWidget(window.result_host)
     window.show()
     window.resize(*size)
-    assert window.minimumSizeHint().width() <= size[0], [
-        layout_sizes(widget)
-        for widget in (window.centralWidget(), window.result_host, window.results)
-    ]
+    if window.minimumSizeHint().width() > size[0]:
+        import json
+
+        print(
+            json.dumps(
+                [
+                    layout_sizes(widget)
+                    for widget in (
+                        window.centralWidget(),
+                        window.result_host,
+                        window.results,
+                    )
+                ],
+                indent=2,
+            )
+        )
+    assert window.minimumSizeHint().width() <= size[0], (
+        window.minimumSizeHint().toTuple()
+    )
     assert window.minimumSizeHint().height() <= size[1], (
         window.minimumSizeHint().toTuple()
     )
