@@ -266,6 +266,17 @@ class ResultsView(QWidget):
         self.result, self.annotations, self.comparison = result, annotations or [], None
         self.daily_data = {}
         self.current_view = None
+        for model in self.findChildren(RecordsModel):
+            model.set_records([])
+        for control in (self.day_type, self.date, self.group):
+            self.fill(control, [])
+        self.canvas.figure.clear()
+        self.canvas.draw_idle()
+        self.summary.setText(
+            "Không có ngành-tháng phù hợp trong lần nghiên cứu này. Kiểm tra phạm vi ngành trước khi chạy lại."
+        )
+        self.comparison_label.clear()
+        self.comparison_label.hide()
         self.import_model.set_records(import_issue_rows(result))
         source_minutes = result["config"]["interval_minutes"]
         self.fill(

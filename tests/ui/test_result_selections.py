@@ -107,3 +107,17 @@ def test_rejected_mdms_rows_explain_cause_and_source_coordinates_in_vietnamese(q
     assert "mdms.csv" in row["message"] and "dòng 8" in row["message"]
     assert "không âm" in row["message"]
     assert "measurement must" not in row["message"]
+
+
+def test_loading_empty_result_clears_previous_curves_and_tables(qtbot):
+    view = ResultsView()
+    qtbot.addWidget(view)
+    result = result_data()
+    view.set_result(result)
+    assert view.table_model.rowCount() == 48
+    view.set_result({**result, "run_id": "empty", "cells": [], "status": "partial"})
+    assert view.table_model.rowCount() == 0
+    assert view.canvas.figure.axes == []
+    assert view.current_view is None
+    assert view.day_type.count() == view.date.count() == view.group.count() == 0
+    assert "Không có" in view.summary.text()
