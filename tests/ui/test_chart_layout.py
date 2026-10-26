@@ -8,6 +8,30 @@ from test_results import result_data
 from load_research.ui.window import MainWindow
 
 
+def layout_sizes(widget):
+    layout = widget.layout()
+    if layout is None:
+        return {}
+    rows = []
+    for index in range(layout.count()):
+        item = layout.itemAt(index)
+        children = []
+        child_layout = item.layout()
+        if child_layout is not None:
+            for number in range(child_layout.count()):
+                child = child_layout.itemAt(number).widget()
+                if child is not None:
+                    children.append(
+                        (type(child).__name__, child.minimumSizeHint().toTuple())
+                    )
+        rows.append((index, item.minimumSize().toTuple(), children))
+    return {
+        "widget": type(widget).__name__,
+        "hint": widget.minimumSizeHint().toTuple(),
+        "rows": rows,
+    }
+
+
 def assert_chart_and_controls_fit(window):
     view = window.results
     canvas = view.canvas
@@ -52,9 +76,10 @@ def test_result_chart_labels_and_controls_fit_after_resize_and_option_changes(
     window.tabs.setCurrentWidget(window.result_host)
     window.show()
     window.resize(*size)
-    assert window.minimumSizeHint().width() <= size[0], (
-        window.minimumSizeHint().toTuple()
-    )
+    assert window.minimumSizeHint().width() <= size[0], [
+        layout_sizes(widget)
+        for widget in (window.centralWidget(), window.result_host, window.results)
+    ]
     assert window.minimumSizeHint().height() <= size[1], (
         window.minimumSizeHint().toTuple()
     )
