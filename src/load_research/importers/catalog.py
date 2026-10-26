@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from load_research.calendar import month_days
 from load_research.domain.energy import ENERGY_UNITS
+from load_research.input_errors import source_row
 
 
 def required_text(row: dict, name: str) -> str:
@@ -165,63 +166,66 @@ def load_catalog(rows: Iterable[dict], scope: str, *, decimal: str = ".") -> Cat
     sample_billing: dict[tuple[str, str], SampleBilling] = {}
     industry_names: dict[str, str] = {}
     for row in rows:
-        if row.get("organization_code", scope) != scope:
-            raise ValueError("customer scope does not match study scope")
-        identifier = required_text(row, "customer_id")
-        customer = Customer(
-            identifier,
-            required_text(row, "industry_code"),
-            number(row.get("sampling_weight") or 1, decimal=decimal),
-        )
-        if customer.weight <= 0:
-            raise ValueError("sampling weight must be positive")
-        if row.get("industry_name"):
-            name = required_text(row, "industry_name")
-            if industry_names.get(customer.industry_code, name) != name:
-                raise ValueError("conflicting industry names")
-            industry_names[customer.industry_code] = name
-        meter_id = str(
-            row.get("meter_id") or row.get("measurement_point_id") or ""
-        ).strip()
-        if not meter_id:
-            raise ValueError("meter mapping requires meter_id or measurement_point_id")
-        start = (
-            datetime.fromisoformat(row["valid_from"])
-            if row.get("valid_from")
-            else datetime.min
-        )
-        end = (
-            datetime.fromisoformat(row["valid_to"])
-            if row.get("valid_to")
-            else datetime.max
-        )
-        if start.tzinfo or end.tzinfo or start >= end:
-            raise ValueError(
-                "mapping validity must be an ordered local [from,to) interval"
+        with source_row(row):
+            if row.get("organization_code", scope) != scope:
+                raise ValueError("customer scope does not match study scope")
+            identifier = required_text(row, "customer_id")
+            customer = Customer(
+                identifier,
+                required_text(row, "industry_code"),
+                number(row.get("sampling_weight") or 1, decimal=decimal),
             )
-        link = MeterLink(
-            customer,
-            meter_id,
-            start,
-            end,
-            str(row.get("meter_role", "")).lower() == "additive",
-        )
-        if link not in seen:
-            seen.add(link)
-            links.append(link)
-        if row.get("sample_billing_kwh"):
-            period = required_text(row, "year_month")
-            month_days(period)
-            basis = row.get("sample_billing_basis") or None
-            if basis not in (None, "calendar_month", "billing_label_month"):
-                raise ValueError("invalid sample billing basis")
-            value = SampleBilling(
-                number(row["sample_billing_kwh"], decimal=decimal), basis
+            if customer.weight <= 0:
+                raise ValueError("sampling weight must be positive")
+            if row.get("industry_name"):
+                name = required_text(row, "industry_name")
+                if industry_names.get(customer.industry_code, name) != name:
+                    raise ValueError("conflicting industry names")
+                industry_names[customer.industry_code] = name
+            meter_id = str(
+                row.get("meter_id") or row.get("measurement_point_id") or ""
+            ).strip()
+            if not meter_id:
+                raise ValueError(
+                    "meter mapping requires meter_id or measurement_point_id"
+                )
+            start = (
+                datetime.fromisoformat(row["valid_from"])
+                if row.get("valid_from")
+                else datetime.min
             )
-            key = (identifier, period)
-            if key in sample_billing and sample_billing[key] != value:
-                raise ValueError("conflicting sample billing")
-            sample_billing[key] = value
+            end = (
+                datetime.fromisoformat(row["valid_to"])
+                if row.get("valid_to")
+                else datetime.max
+            )
+            if start.tzinfo or end.tzinfo or start >= end:
+                raise ValueError(
+                    "mapping validity must be an ordered local [from,to) interval"
+                )
+            link = MeterLink(
+                customer,
+                meter_id,
+                start,
+                end,
+                str(row.get("meter_role", "")).lower() == "additive",
+            )
+            if link not in seen:
+                seen.add(link)
+                links.append(link)
+            if row.get("sample_billing_kwh"):
+                period = required_text(row, "year_month")
+                month_days(period)
+                basis = row.get("sample_billing_basis") or None
+                if basis not in (None, "calendar_month", "billing_label_month"):
+                    raise ValueError("invalid sample billing basis")
+                value = SampleBilling(
+                    number(row["sample_billing_kwh"], decimal=decimal), basis
+                )
+                key = (identifier, period)
+                if key in sample_billing and sample_billing[key] != value:
+                    raise ValueError("conflicting sample billing")
+                sample_billing[key] = value
     if not links:
         raise ValueError("sample catalog is empty")
     return Catalog(links, scope, sample_billing, industry_names)
@@ -232,28 +236,31 @@ def load_billing(
 ) -> dict[tuple[str, str], BillingTotal]:
     totals = {}
     for row in rows:
-        if row.get("organization_scope", scope) != scope:
-            raise ValueError("billing scope does not match study scope")
-        industry, period = (
-            required_text(row, "industry_code"),
-            required_text(row, "year_month"),
-        )
-        month_days(period)
-        basis = row.get("billing_basis", "")
-        if basis not in ("calendar_month", "billing_label_month"):
-            raise ValueError("billing basis must be explicitly declared")
-        unit = row.get("unit", "")
-        if unit not in ENERGY_UNITS:
-            raise ValueError("billing energy unit must be declared")
-        value = number(row.get("billing_energy"), decimal=decimal) * ENERGY_UNITS[unit]
-        if not math.isfinite(value):
-            raise ValueError("billing energy overflow")
-        key = (industry, period)
-        if key in totals:
-            raise ValueError("duplicate industry-month billing total")
-        totals[key] = BillingTotal(
-            value,
-            basis,
-            str(row.get("source_description", "user-supplied billing table")),
-        )
+        with source_row(row):
+            if row.get("organization_scope", scope) != scope:
+                raise ValueError("billing scope does not match study scope")
+            industry, period = (
+                required_text(row, "industry_code"),
+                required_text(row, "year_month"),
+            )
+            month_days(period)
+            basis = row.get("billing_basis", "")
+            if basis not in ("calendar_month", "billing_label_month"):
+                raise ValueError("billing basis must be explicitly declared")
+            unit = row.get("unit", "")
+            if unit not in ENERGY_UNITS:
+                raise ValueError("billing energy unit must be declared")
+            value = (
+                number(row.get("billing_energy"), decimal=decimal) * ENERGY_UNITS[unit]
+            )
+            if not math.isfinite(value):
+                raise ValueError("billing energy overflow")
+            key = (industry, period)
+            if key in totals:
+                raise ValueError("duplicate industry-month billing total")
+            totals[key] = BillingTotal(
+                value,
+                basis,
+                str(row.get("source_description", "user-supplied billing table")),
+            )
     return totals

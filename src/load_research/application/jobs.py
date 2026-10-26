@@ -37,6 +37,7 @@ def _worker(root: str, payload: dict, events, cancellation) -> None:
             {
                 "stage": "error",
                 "error_type": type(error).__name__,
+                "source_context": getattr(error, "source_context", {}),
                 "message": str(error),
             }
         )
@@ -62,6 +63,7 @@ def _export_worker(
             {
                 "stage": "error",
                 "error_type": type(error).__name__,
+                "source_context": getattr(error, "source_context", {}),
                 "message": str(error),
             }
         )
@@ -123,6 +125,7 @@ def _auxiliary_worker(
             {
                 "stage": "error",
                 "error_type": type(error).__name__,
+                "source_context": getattr(error, "source_context", {}),
                 "message": str(error),
             }
         )
