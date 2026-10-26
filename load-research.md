@@ -858,3 +858,15 @@ Các nguồn được đối chiếu ngày 23/10/2026. Mục tiêu sản phẩm 
 Bản đặc tả được xem là sẵn sàng lập kế hoạch khi người dùng duyệt mục tiêu, ranh giới module, quy trình và các đề xuất phương pháp chính; các câu hỏi phụ thuộc tệp thực được gắn rõ với bước cần giải quyết. Chỉ triển khai bộ nhập thực tế sau khi có thông tin nguồn cần thiết; chỉ cam kết hiệu năng hoặc ma trận phát hành sau khi đã chốt điều kiện đo/kiểm thử.
 
 Việc lưu tài liệu này hoàn thành yêu cầu viết spec. Kế hoạch công việc, task triển khai và mã ứng dụng được thực hiện ở bước tiếp theo sau khi người dùng duyệt hoặc yêu cầu điều chỉnh đặc tả.
+
+## 28. Bổ sung được chốt ngày 26/10/2026
+
+Phạm vi mở rộng: ẩn cửa sổ dòng lệnh khi mở desktop Windows; Việt hóa lỗi nhập và nội dung trình bày/báo cáo; mở rộng tab Kết quả và tài liệu phương pháp. Bản đồ khả năng và thứ tự ở `tasks/plan.md`; nghiệm thu T35–T48 trong `tasks.md`.
+
+- Cho chọn nhiều mã ngành và nhiều loại ngày, xem cả đường tổng hợp và các đường so sánh. Thành phần phụ tải là một tập mã ngành do người dùng chọn/đặt tên; toàn đơn vị là tất cả ngành thuộc phạm vi có thể xác minh của nghiên cứu. Các tập phải khử mã trùng; nhóm hành vi vẫn là kết quả phân cụm bên trong ngành/loại ngày.
+- Với tập ngành G và tập loại ngày T: E_G,t,k = tổng_g E_g,t,k; E_G,T,k = tổng_t(N_t × E_G,t,k) / tổng_t N_t. Số ngày bằng 0 là không áp dụng. Tổng ngành thiếu dữ liệu phải được ghi rõ/chặn đường tổng đầy đủ. Giữ riêng A/S/alpha ngành; không suy rộng lại tổng đã suy rộng.
+- Hai chế độ suy rộng ngày: (1) lịch ngày d dùng E_g,type(d),k; (2) biến thiên ngày dùng F_g,d,k = tổng_i(w_i × x_sau_xử_lý_i,d,k), D_g = tổng_d,k F_g,d,k, beta_g = A_g/D_g, E_ngày_g,d,k = beta_g × F_g,d,k. Chế độ (2) yêu cầu cohort cố định và mọi ngày đều đủ điều kiện; không tự bù ngày thiếu. Hai mô hình có thể khác hệ số, phải ghi rõ phương pháp và kiểm tra cân bằng tháng.
+- Xem và xuất mẫu trước/sau VEE, mô hình ngày lịch và mô hình biến thiên ngày; phân biệt số liệu nguồn, giá trị ước lượng và mô hình. Hỗ trợ kW/kWh, 24/48 chu kỳ theo độ phân giải thực có. Không đổi ngày thiếu thành số 0 và không cộng trực tiếp kW khi đổi chu kỳ.
+- Biểu đồ co giãn theo canvas sau resize và sau mọi đổi bộ lọc; click vào điểm xem khoảng thời gian, tên đường, trị số và đơn vị. Bộ xuất phải khớp chính xác phép tổng hợp đang xem, có phạm vi/ngày/phương pháp/độ phủ và công thức.
+- Nội dung người dùng đọc và báo cáo GUI dùng tiếng Việt chuyên ngành: điện năng tác dụng, công suất trung bình chu kỳ, điện năng thương phẩm, hệ số suy rộng, tập mẫu chung, độ phủ dữ liệu và đóng góp nhóm. Tên trường kỹ thuật trong nguồn/schema/manifest vẫn được giữ để ánh xạ và tái lập, kèm diễn giải tiếng Việt.
+- Tài liệu mới giải thích đầy đủ mọi chỉ tiêu ở tab Kết quả, công thức đơn vị/thời gian/chuẩn hóa/phân cụm/suy rộng/tổng hợp/ngày, điều kiện áp dụng, số 0/thiếu và ví dụ số đối chiếu được bằng test.

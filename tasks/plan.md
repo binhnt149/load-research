@@ -37,3 +37,28 @@ Thực hiện tuần tự, checkpoint sau các nhóm tính toán, pipeline và U
 ## Điều kiện kết thúc
 
 Toàn bộ tests đã triển khai phải pass, không bỏ/skips tests thất bại. Task chỉ `[x]` khi tiêu chí được kiểm chứng. Các mục phụ thuộc dữ liệu thực/máy khác giữ `[ ]`, ghi lý do và hướng dẫn tiếp tục thay vì khai hoàn thành giả.
+
+## Đợt 26/10/2026 — Kết quả tổng hợp, dữ liệu ngày và Việt hóa
+
+Yêu cầu đã chốt trực tiếp: có cả một đường tổng hợp và nhiều đường so sánh; xem dữ liệu mẫu trước/sau xử lý cùng hai mô hình suy rộng ngày (theo loại ngày và giữ biến thiên từng ngày). Tiếp tục trên kế hoạch hiện hữu; `tasks.md` vẫn là danh sách trạng thái duy nhất. Giữ nguyên các điều kiện E01/E02/E03 và chỉnh sửa README cục bộ của người dùng.
+
+| Khả năng | Trách nhiệm | Phụ thuộc |
+|---|---|---|
+| desktop-launch | Windows mở GUI không tạo cửa sổ dòng lệnh; giữ chạy CLI/worker | đóng gói hiện hữu |
+| vi-presentation | Thuật ngữ, thông báo lỗi có vị trí/hướng xử lý, bảng và báo cáo tiếng Việt | hợp đồng dữ liệu hiện hữu |
+| result-aggregation | Cộng nhiều mã ngành, thành phần phụ tải, toàn đơn vị; gộp loại ngày có trọng số | industry-scaling, calendar |
+| daily-profiles | Mẫu trước/sau VEE và hai mô hình suy rộng theo ngày | result-aggregation, canonical cache, cohort |
+| result-charts | Chọn nhiều phạm vi, so sánh, click số liệu, resize và xuất đúng lựa chọn | result-aggregation, daily-profiles, vi-presentation |
+| result-methodology | Công thức, điều kiện, ví dụ tính tay và giới hạn diễn giải | các khả năng trên |
+
+Thứ tự: sửa resize → console Windows → từ vựng/lỗi → phép tổng hợp → lưu/đọc dữ liệu ngày → tích hợp giao diện/xuất → tài liệu và kiểm chứng toàn bộ. Các task cụ thể T35–T48 nằm trong `tasks.md`; checkpoint sau T38, T43 và T48.
+
+Quy tắc tính: cộng điện năng theo cùng chu kỳ trước khi đổi kW/chuẩn hóa; không cộng các đường chuẩn hóa độc lập. Các ngành được suy rộng riêng bằng A ngành rồi cộng, không nhân lại một hệ số chung. Gộp loại ngày bằng số ngày lịch thực tế. Không tạo tổng đầy đủ khi một ngành được chọn còn thiếu đường cong; hiển thị ngành thiếu và trạng thái rõ. Toàn đơn vị giới hạn đúng phạm vi nghiên cứu/độ phủ ngành có thể xác minh.
+
+Ngày lịch dùng đúng đường đại diện E của loại ngày. Phương pháp biến thiên ngày dùng tập khách hàng chung đã lưu: D = tổng điện năng mẫu sau xử lý của toàn bộ ngày, beta = A/D; chỉ có đường suy rộng khi mọi ngày của cohort đều đủ điều kiện. Thiếu cả ngày không được tự bù bằng ngày đại diện. Ngày nguồn trước VEE có thể chứa ước lượng từ hệ thống; giữ chỉ báo chất lượng. A=0/D=0/thiếu A xử lý riêng, bảo toàn tháng trong cùng dung sai hiện hữu.
+
+Dữ liệu ngày được xử lý trong worker, theo ngành-tháng, không nạp 12 tháng dữ liệu khách hàng thô vào Qt. Ưu tiên tái sử dụng quá trình VEE để lưu aggregate ngày có checksum; kết quả cũ có thể dựng lại từ catalog/cache đã xác minh, không sửa snapshot cũ. Cache phụ trợ phải gắn config/cohort/import/method và kiểm tra toàn vẹn trước khi dùng.
+
+Giao diện giữ theme hiện có, chia bộ lọc thành các hàng gọn; luôn phân biệt ngành nghề, thành phần phụ tải theo mã ngành và nhóm hành vi. Đổi bộ lọc không thay kích thước Figure độc lập với canvas. Click chọn điểm hiển thị chu kỳ/khoảng giờ/tên đường/giá trị/đơn vị; bảng chu kỳ là cách truy cập tương đương bằng bàn phím. Báo cáo GUI dùng tiêu đề/giá trị tiếng Việt, giữ schema nội bộ và tùy chọn xuất kỹ thuật để tái lập.
+
+Rủi ro: thiếu A/ngành/lịch, trộn cơ sở kỳ, nhóm hành vi trùng tên, ngày không đủ cohort, kết quả cũ thiếu artifact ngày, checksum cache, DPI/legend dài, console/CLI trên Windows. Verify bằng fixture tính tay, integration tệp thật, Qt hình học/sự kiện click, bộ xuất CSV/XLSX/PNG/SVG, smoke đóng gói phù hợp và full suite không skip.
