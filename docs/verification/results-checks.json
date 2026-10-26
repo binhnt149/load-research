@@ -1,0 +1,63 @@
+{
+  "source_commit": "2edb09c591a8d2652c3b00a2ce0cd5f379a2b1fc",
+  "local": {
+    "tests": "272",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "36.718",
+    "timestamp": "2026-10-26T21:24:59.616562+07:00"
+  },
+  "ruff": "passed",
+  "mypy": {
+    "status": "passed",
+    "source_files": 50
+  },
+  "wheel": {
+    "status": "passed",
+    "modules_matching_source": 50,
+    "sha256": "1eced196fbd9d3dd975dd17edf459a9969f510f40eb72d76a62045ebe124e7f7"
+  },
+  "audit": {
+    "runtime_dev_packages": 72,
+    "build_packages": 3,
+    "known_vulnerabilities": 0
+  },
+  "mutation_checks": [
+    "aggregation completeness condition: detected",
+    "new Figure replacing current canvas: detected"
+  ],
+  "native_windows_console": {
+    "status": "passed",
+    "positive_control": true,
+    "console_attached": false,
+    "startup_alive": true,
+    "scope": "native desktop startup from pythonw; clean-machine GUI UAT remains separate"
+  },
+  "native_windows_console_run": 40327062787,
+  "ci": {
+    "run_id": 40339613158,
+    "url": "https://github.com/binhnt149/load-research/actions/runs/40339613158",
+    "quality": {
+      "windows": {
+        "tests": "272",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "time": "65.436",
+        "timestamp": "2026-10-26T14:28:45.507050+00:00",
+        "known_vulnerabilities": 0
+      },
+      "macos": {
+        "tests": "272",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "time": "68.487",
+        "timestamp": "2026-10-26T14:28:12.727794+00:00",
+        "known_vulnerabilities": 0
+      }
+    },
+    "native_windows_latest_source": "in_progress at report handoff; no pass claim for this bundle"
+  }
+}
