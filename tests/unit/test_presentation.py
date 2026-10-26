@@ -34,6 +34,7 @@ def test_display_formats_fractions_and_unavailable_data_explicitly():
     assert format_value("estimated_fraction", 0.125) == "12,5%"
     assert format_value("billing_kwh", 1234.5) == "1.234,5"
     assert format_value("alpha", None) == "—"
+    assert format_value("billing_kwh", 3175950.006) == "3.175.950,006"
 
 
 def test_all_saved_method_parameters_have_vietnamese_labels():

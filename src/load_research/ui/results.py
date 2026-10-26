@@ -626,11 +626,7 @@ class ResultsView(QWidget):
             f"Điện năng lựa chọn: {format_value('value', view['energy_selected_kwh'])} kWh · "
             f"Thương phẩm tháng: {format_value('value', view['billing_kwh'])} kWh · "
             + ("Đủ đường tổng hợp" if view["complete"] else "Chưa đủ đường tổng hợp")
-            + " · "
-            + "; ".join(
-                f"{item['industry_code']}: {format_value('status', item['result']['status'])}"
-                for item in cells
-            )
+            + f" · {sum(item['result']['status'] not in ('valid', 'valid_with_warnings') for item in cells)} ngành cần xem trạng thái mẫu"
         )
         self.canvas.draw_idle()
 

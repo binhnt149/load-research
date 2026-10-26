@@ -122,3 +122,23 @@ def test_daily_chart_with_point_values_fits_small_window(qtbot):
     )
     qtbot.waitUntil(lambda: window.size().toTuple() == (1024, 768))
     assert_chart_and_controls_fit(window)
+
+
+def test_many_industry_selection_keeps_summary_and_chart_within_window(qtbot):
+    import copy
+
+    result = result_data()
+    template = result["cells"][0]
+    result["cells"] = [
+        {**copy.deepcopy(template), "industry_code": f"{index:02}"}
+        for index in range(50)
+    ]
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.results.set_result(result)
+    window.results.industry.set_selected(tuple(f"{index:02}" for index in range(50)))
+    window.tabs.setCurrentWidget(window.result_host)
+    window.show()
+    window.resize(1024, 768)
+    qtbot.waitUntil(lambda: window.size().toTuple() == (1024, 768))
+    assert_chart_and_controls_fit(window)

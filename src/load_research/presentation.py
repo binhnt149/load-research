@@ -231,7 +231,12 @@ def format_value(key: str, value: object) -> str:
     if value is None or isinstance(value, float) and not math.isfinite(value):
         return "—"
     if isinstance(value, float):
-        text = f"{value * 100:.6g}%" if key in FRACTIONS else f"{value:,.6g}"
+        if key in FRACTIONS:
+            text = f"{value * 100:.6g}%"
+        elif value and abs(value) < 1e-6:
+            text = f"{value:.6g}"
+        else:
+            text = f"{value:,.6f}".rstrip("0").rstrip(".")
         return text.replace(",", "\0").replace(".", ",").replace("\0", ".")
     return str(value)
 
