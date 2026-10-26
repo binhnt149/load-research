@@ -85,6 +85,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(scroll(self.form.config_form), "2 · Phương pháp")
         self.result_host = QWidget()
         self.result_layout = QVBoxLayout(self.result_host)
+        self.result_layout.setContentsMargins(6, 0, 6, 0)
         self.results = ResultsView()
         self.results.rename_requested.connect(self.rename_cluster)
         self.results.export_requested.connect(self.export_dialog)

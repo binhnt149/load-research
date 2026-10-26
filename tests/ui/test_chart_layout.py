@@ -3,7 +3,7 @@
 import pytest
 from PySide6.QtCore import QPoint, QRect
 from PySide6.QtGui import QFontDatabase, QFontMetrics
-from PySide6.QtWidgets import QCheckBox, QComboBox, QPushButton
+from PySide6.QtWidgets import QCheckBox, QComboBox, QPushButton, QSplitter
 from test_results import result_data
 
 from load_research.ui.window import MainWindow
@@ -45,6 +45,12 @@ def assert_chart_and_controls_fit(window):
     view = window.results
     canvas = view.canvas
     canvas.draw()
+    splitter = canvas.parentWidget()
+    assert isinstance(splitter, QSplitter)
+    assert not canvas.geometry().intersects(splitter.handle(1).geometry()), (
+        f"Splitter covers chart: {canvas.geometry().getRect()}, "
+        f"{splitter.handle(1).geometry().getRect()}"
+    )
     renderer = canvas.get_renderer()
     width = canvas.width() * canvas.device_pixel_ratio
     height = canvas.height() * canvas.device_pixel_ratio
@@ -169,6 +175,12 @@ def test_daily_chart_with_point_values_fits_small_window(qtbot):
         "button_press_event",
         MouseEvent("button_press_event", view.canvas, x, y, button=1),
     )
+    # Both daily totals and clicked values can occupy two lines with real data.
+    view.summary.setText("Tổng hợp nhiều ngành, thương phẩm tháng\nĐủ đường tổng hợp")
+    view.point_label.setText(
+        "Chu kỳ 1: Tổng hợp và hai ngành\nMẫu nguồn và mẫu sau VEE"
+    )
+    qtbot.wait(50)
     qtbot.waitUntil(lambda: window.size().toTuple() == (1024, 768))
     assert_chart_and_controls_fit(window)
 
