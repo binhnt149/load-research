@@ -304,6 +304,7 @@ class ResultsView(QWidget):
             stacked=self.stacked.isChecked(),
             cluster_ids=(self.group.currentData(),) if self.group.currentData() else (),
             run_id=self.result["run_id"],
+            figure=self.canvas.figure,
         )
         if normalization is None:
             figure.axes[0].set_ylabel(
@@ -311,10 +312,6 @@ class ResultsView(QWidget):
                 if unit == "kW"
                 else "Điện năng\nmỗi chu kỳ (kWh)"
             )
-        old = self.canvas.figure
-        self.canvas.figure = figure
-        figure.set_canvas(self.canvas)
-        old.clear()
         computed = cell["result"]
         key = "sample" if normalization or scope == "sample_portfolio" else "energy"
         vector = (

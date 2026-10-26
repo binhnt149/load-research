@@ -25,6 +25,7 @@ def build_figure(
     stacked: bool = False,
     cluster_ids: tuple[str, ...] = (),
     run_id: str = "",
+    figure: Figure | None = None,
 ) -> Figure:
     target_minutes = target_minutes or source_minutes
     source_key = "energy" if scope == "industry_scaled" else "sample"
@@ -33,7 +34,9 @@ def build_figure(
     )
     if normalization:
         source_key, component_key = "sample", "sample_contributions"
-    figure = Figure(figsize=(10, 4.8), layout="constrained")
+    figure = figure if figure is not None else Figure(figsize=(10, 4.8))
+    figure.clear()
+    figure.set_layout_engine("constrained")
     axes = figure.add_subplot(111)
     computed = cell["result"]
     values = computed[source_key].get(day_type)
