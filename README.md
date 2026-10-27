@@ -6,7 +6,7 @@
 
 ## Bản phát hành 0.1.3
 
-[GitHub Release v0.1.3](https://github.com/binhnt149/load-research/releases/tag/v0.1.3) là trang tải DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel sau khi workflow phát hành hoàn tất. Bản này bổ sung khoảng ngày xuyên tháng, danh mục thành phần phụ tải, tra cứu khách hàng trước/sau VEE và biểu đồ bật/tắt từng đường. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.3.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
+[GitHub Release v0.1.3](https://github.com/binhnt149/load-research/releases/tag/v0.1.3) đã cung cấp DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel. Toàn bộ quality/native/publish gate đã đạt; 331/331 test pass trên mỗi OS. Bản này bổ sung khoảng ngày xuyên tháng, danh mục thành phần phụ tải, tra cứu khách hàng trước/sau VEE và biểu đồ bật/tắt từng đường. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.3.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
 
 ## Giao diện và tệp mẫu
 
