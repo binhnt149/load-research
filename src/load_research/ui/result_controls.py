@@ -70,19 +70,39 @@ class MultiSelectCombo(QComboBox):
             self.set_selected(selected)
 
 
-def chart_point_text(event, *, minutes: int, unit: str) -> str | None:
+def chart_point_text(
+    event, *, minutes: int, unit: str, timeline: bool = False
+) -> str | None:
     if event.inaxes is None or event.xdata is None or event.button != 1:
         return None
     index = max(0, min(1440 // minutes - 1, int(round(event.xdata * 60 / minutes))))
+    stamp = None
+    if timeline:
+        from matplotlib.dates import num2date
+
+        line = next((line for line in event.inaxes.lines if line.get_visible()), None)
+        if line is None:
+            return None
+        x = np.asarray(line.get_xdata(orig=False), dtype=float)
+        index = int(np.argmin(abs(x - event.xdata)))
+        if abs(x[index] - event.xdata) > minutes / 1440:
+            return None
+        stamp = num2date(x[index])
     values = []
     for line in event.inaxes.lines:
+        if not line.get_visible():
+            continue
         y = line.get_ydata()
         if len(y) > index and np.isfinite(y[index]):
             values.append(
                 f"{line.get_label()}: {format_value('value', float(y[index]))} {unit}"
             )
-    start, end = index * minutes, (index + 1) * minutes
+    if not values:
+        return None
+    start = stamp.hour * 60 + stamp.minute if stamp is not None else index * minutes
+    end = start + minutes
     return (
-        f"Chu kỳ {index + 1} · {start // 60:02}:{start % 60:02}–{end // 60:02}:{end % 60:02} · "
+        (f"Ngày {stamp:%Y-%m-%d} · " if stamp is not None else "")
+        + f"Chu kỳ {start // minutes + 1} · {start // 60:02}:{start % 60:02}–{end // 60:02}:{end % 60:02} · "
         + " | ".join(values)
     )

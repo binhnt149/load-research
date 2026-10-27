@@ -52,6 +52,14 @@ def _export_worker(
             workspace.load_artifact(run_id, "result.json"),
             workspace.list_cluster_labels(run_id),
         )
+        if options.get("component_catalog_revision") is not None:
+            from load_research.application.components import load_components
+            from load_research.components import apply_component_catalog
+
+            result = apply_component_catalog(
+                result,
+                load_components(workspace, options["component_catalog_revision"]),
+            )
         if "view_selection" in options:
             from load_research.application.result_export import export_selection
 
@@ -113,6 +121,31 @@ def _auxiliary_worker(
                 check=check,
             )
             events.put({"stage": "backed_up", "destination": payload["destination"]})
+        elif action == "temporal":
+            from load_research.application.temporal import load_temporal_view
+
+            details = load_temporal_view(workspace, payload, check=check)
+            check()
+            events.put(
+                {
+                    "stage": "temporal_loaded",
+                    "run_id": payload["run_id"],
+                    "token": payload["token"],
+                    "context": {k: v for k, v in payload.items() if k != "token"},
+                    "details": details,
+                }
+            )
+        elif action == "components":
+            from load_research.application.components import import_components
+
+            details = import_components(
+                workspace,
+                Path(payload["path"]),
+                sheet=payload.get("sheet"),
+                delimiter=payload.get("delimiter", ","),
+                check=check,
+            )
+            events.put({"stage": "components_imported", "details": details})
         elif action == "daily":
             from load_research.application.daily import load_daily
 
@@ -206,6 +239,8 @@ class ResearchJob:
             "backup",
             "inspect",
             "daily",
+            "components",
+            "temporal",
         ):
             raise RuntimeError("invalid auxiliary task or reused job")
         self.process = self.context.Process(

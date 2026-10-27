@@ -77,6 +77,9 @@ FIELDS = {
     "repaired_kwh": "Điện năng sau xử lý (kWh)",
     "estimated": "Giá trị ước lượng",
     "repair_blocked": "Không cho phép bù",
+    "quality_known": "Đã biết chất lượng nguồn",
+    "component_code": "Mã thành phần phụ tải",
+    "component_name": "Tên thành phần phụ tải",
     "method": "Phương pháp",
     "donor_dates": "Ngày nguồn dùng bù",
     "eligible": "Đủ điều kiện",
@@ -165,6 +168,7 @@ BASES = {
     "billing_label_month": "Tháng ghi sổ thương phẩm",
 }
 SCOPES = {
+    "customer": "Phụ tải từng khách hàng",
     "industry_scaled": "Phụ tải suy rộng",
     "sample_portfolio": "Phụ tải tập mẫu",
     "overall": "Đường phụ tải tổng hợp",
@@ -173,6 +177,7 @@ SCOPES = {
     "dimensionless": "Không thứ nguyên",
 }
 METHODS = {
+    "customer": "Dữ liệu từng khách hàng trước/sau VEE",
     "source": "Dữ liệu nguồn",
     "linear": "Nội suy tuyến tính",
     "like_day": "Bù bằng ngày tương đồng",

@@ -36,12 +36,12 @@ QPushButton#primary:disabled {{ background: {DISABLED}; color: {MUTED}; border-c
 QToolButton {{ border: 1px solid transparent; border-radius: 4px;
     padding: 8px; color: {ACCENT}; text-align: left; }}
 QToolButton:hover {{ background: {SELECTION}; }}
-QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{ background: {SURFACE};
+QLineEdit, QSpinBox, QDoubleSpinBox, QDateEdit, QComboBox {{ background: {SURFACE};
     color: {TEXT}; border: 1px solid {BORDER}; border-radius: 5px;
     padding: 7px 8px; min-height: 18px; selection-background-color: {SELECTION};
     selection-color: {TEXT}; }}
-QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{ border-color: {ACCENT}; }}
-QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled,
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus, QComboBox:focus {{ border-color: {ACCENT}; }}
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QDateEdit:disabled,
 QComboBox:disabled {{ color: {MUTED}; background: {DISABLED}; }}
 QComboBox QAbstractItemView {{ background: {SURFACE}; color: {TEXT};
     selection-background-color: {SELECTION}; selection-color: {TEXT}; }}

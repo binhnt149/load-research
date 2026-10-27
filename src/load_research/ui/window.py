@@ -95,6 +95,12 @@ class MainWindow(QMainWindow):
         self.results.daily_requested.connect(
             lambda payload: self.start_auxiliary("daily", payload)
         )
+        self.results.component_import_requested.connect(
+            lambda payload: self.start_auxiliary("components", payload)
+        )
+        self.results.temporal_requested.connect(
+            lambda payload: self.start_auxiliary("temporal", payload)
+        )
         self.result_layout.addWidget(self.results)
         self.tabs.addTab(self.result_host, "3 · Kết quả")
         history = QWidget()
@@ -149,6 +155,8 @@ class MainWindow(QMainWindow):
                 "finish or cancel the active job before switching projects"
             )
         self.workspace = Workspace.open(path)
+        self.current_result = None
+        self.results.clear_result()
         self.project_label.setText(f"Dự án: {self.workspace.root.name}")
         self.project_label.setToolTip(str(self.workspace.root))
         self.start_button.setEnabled(True)
@@ -284,6 +292,8 @@ class MainWindow(QMainWindow):
                     "verify": "Đang xác minh checksum nguồn…",
                     "inspect": "Đang truy vết dữ liệu ngày…",
                     "daily": "Đang đọc và xác minh phụ tải từng ngày…",
+                    "components": "Đang kiểm tra và nhập danh mục thành phần phụ tải…",
+                    "temporal": "Đang đọc dữ liệu khoảng ngày / khách hàng mẫu…",
                     "backup": "Đang tạo bản sao lưu…",
                 }[action]
             )
@@ -330,6 +340,8 @@ class MainWindow(QMainWindow):
             self.job.join(0)
             events.extend(self.job.poll())
         for event in events:
+            if self.workspace is None or self.workspace.root != self.job.root:
+                continue
             stage = event["stage"]
             self.log.appendPlainText(event_text(event))
             if "total" in event:
@@ -365,6 +377,24 @@ class MainWindow(QMainWindow):
                 )
             elif stage == "backed_up":
                 self.status_label.setText(f"Đã sao lưu: {event['destination']}")
+            elif stage == "temporal_loaded":
+                if (
+                    self.current_result
+                    and self.current_result["run_id"] == event["run_id"]
+                ):
+                    if self.results.temporal.accept_data(
+                        event["details"], event["context"], event["token"]
+                    ):
+                        self.results.render_results()
+                        self.status_label.setText(
+                            "Đã nạp dữ liệu của khoảng ngày / khách hàng đã chọn."
+                        )
+            elif stage == "components_imported":
+                if self.workspace and self.workspace.root == self.job.root:
+                    self.results.set_component_catalog(event["details"])
+                    self.status_label.setText(
+                        f"Đã lưu danh mục thành phần phiên bản {event['details']['revision']}."
+                    )
             elif stage == "daily_loaded":
                 if (
                     self.current_result
@@ -409,6 +439,9 @@ class MainWindow(QMainWindow):
             raise ValueError("invalid result schema")
         self.current_result = result
         self.results.set_result(result, self.workspace.list_cluster_labels(run_id))
+        from load_research.application.components import load_components
+
+        self.results.set_component_catalog(load_components(self.workspace))
         self.result_ready.emit(result)
         self.tabs.setCurrentIndex(2)
 

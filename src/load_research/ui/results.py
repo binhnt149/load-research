@@ -9,11 +9,13 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
     QLabel,
     QLineEdit,
+    QMenu,
     QPushButton,
     QSplitter,
     QTableView,
@@ -25,6 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from load_research.calendar import ResearchCalendar, month_days
+from load_research.components import apply_component_catalog
 from load_research.error_messages import format_error, import_issue_rows
 from load_research.exports import apply_annotations, cluster_display_name, convert_curve
 from load_research.presentation import DAY_TYPES, field_label, format_value
@@ -34,9 +37,11 @@ from load_research.result_view import (
     build_daily_view,
     build_result_view,
 )
+from load_research.ui.chart_controls import SeriesVisibility
 from load_research.ui.forms import choose, combo
 from load_research.ui.models import RecordsModel
 from load_research.ui.result_controls import MultiSelectCombo, chart_point_text
+from load_research.ui.temporal_controls import TemporalControls
 
 
 class ResultsView(QWidget):
@@ -44,6 +49,8 @@ class ResultsView(QWidget):
     export_requested = Signal(bool)
     inspect_requested = Signal(dict)
     daily_requested = Signal(dict)
+    component_import_requested = Signal(dict)
+    temporal_requested = Signal(dict)
 
     def __init__(self) -> None:
         super().__init__()
@@ -51,6 +58,7 @@ class ResultsView(QWidget):
         self.comparison: dict | None = None
         self.annotations: list[dict] = []
         self.daily_data: dict = {}
+        self.component_catalog: dict | None = None
         self.current_view: dict | None = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 4, 6, 4)
@@ -60,15 +68,17 @@ class ResultsView(QWidget):
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
         filters = QHBoxLayout()
+        self.filter_labels = {}
         self.industry, self.day_type = MultiSelectCombo(), MultiSelectCombo()
-        self.period, self.group = QComboBox(), QComboBox()
+        self.period, self.group = QComboBox(), QComboBox(self)
+        self.group.hide()
         for label, filter_widget in (
             ("Ngành", self.industry),
             ("Tháng", self.period),
             ("Loại ngày", self.day_type),
-            ("Nhóm", self.group),
         ):
-            filters.addWidget(QLabel(label))
+            self.filter_labels[label] = QLabel(label)
+            filters.addWidget(self.filter_labels[label])
             filters.addWidget(filter_widget, 1)
         layout.addLayout(filters)
         aggregation = QHBoxLayout()
@@ -80,18 +90,34 @@ class ResultsView(QWidget):
             ]
         )
         self.component_name = QLineEdit()
+        self.component_selector = QComboBox()
+        self.component_selector.addItem("Tự chọn mã ngành", None)
         self.component_name.setPlaceholderText("Tên thành phần phụ tải")
         self.mode = combo(
-            [("Ngày đại diện", "representative"), ("Theo từng ngày", "daily")]
+            [
+                ("Ngày đại diện", "representative"),
+                ("Theo từng ngày", "daily"),
+                ("Từ ngày đến ngày", "range"),
+                ("Khách hàng mẫu", "customer"),
+            ]
         )
         widget: QWidget
-        for widget in (self.level, self.component_name, self.mode):
+        for widget in (
+            self.level,
+            self.component_selector,
+            self.component_name,
+            self.mode,
+        ):
             aggregation.addWidget(widget, 1)
         layout.addLayout(aggregation)
         self.daily_row = QWidget()
         daily_layout = QHBoxLayout(self.daily_row)
         daily_layout.setContentsMargins(0, 0, 0, 0)
         self.date = QComboBox()
+        self.temporal = TemporalControls(self)
+        self.temporal.changed.connect(self.render_results)
+        self.temporal.requested.connect(self.temporal_requested)
+        daily_layout.addWidget(self.temporal, 2)
         self.daily_method = combo(
             [
                 ("Đại diện theo loại ngày", "representative"),
@@ -160,8 +186,15 @@ class ResultsView(QWidget):
             lambda: self.canvas.setVisible(not self.canvas.isVisible())
         )
         self.canvas.mpl_connect("button_press_event", self.show_chart_point)
+        self.series_visibility = SeriesVisibility(
+            self.canvas,
+            self.clear_chart_point,
+            self,
+        )
+        point_row.insertWidget(1, self.series_visibility)
         splitter.addWidget(self.canvas)
         tabs = QTabWidget()
+        self.data_tabs = tabs
         tabs.setUsesScrollButtons(True)
         tabs.setElideMode(Qt.TextElideMode.ElideRight)
         tabs.tabBar().setExpanding(False)
@@ -179,6 +212,7 @@ class ResultsView(QWidget):
             RecordsModel(self),
             RecordsModel(self),
         )
+        self.customer_quality_model = RecordsModel(self)
         for label, model in (
             ("Chu kỳ", self.table_model),
             ("Hệ số suy rộng", self.factors_model),
@@ -189,6 +223,7 @@ class ResultsView(QWidget):
             ("Khách hàng bị loại toàn tháng", self.excluded_model),
             ("Thống kê nhóm", self.statistics_model),
             ("Đối soát CMIS toàn tháng", self.reconciliation_model),
+            ("Chi tiết VEE khách hàng", self.customer_quality_model),
         ):
             view = QTableView()
             view.setModel(model)
@@ -200,22 +235,33 @@ class ResultsView(QWidget):
                 QHeaderView.ResizeMode.ResizeToContents
             )
             tabs.addTab(view, label)
+        tabs.setTabVisible(9, False)
         splitter.addWidget(tabs)
         splitter.setSizes([450, 220])
         layout.addWidget(splitter, 1)
         buttons = QHBoxLayout()
-        inspect = QPushButton("Xem dữ liệu ngày / bù…")
-        inspect.clicked.connect(self.inspect_dialog)
-        rename = QPushButton("Đặt tên nhóm đang chọn…")
+        inspect = QPushButton("Khách hàng mẫu")
+        inspect.clicked.connect(lambda: choose(self.mode, "customer"))
+        rename = self.rename_button = QPushButton("Đặt tên nhóm…")
         rename.clicked.connect(self.rename_dialog)
+        rename.setEnabled(False)
         export_current, export_all = (
             QPushButton("Xuất lựa chọn…"),
             QPushButton("Xuất toàn bộ lần chạy…"),
         )
+        self.export_all_button = export_all
         export_current.clicked.connect(lambda: self.export_requested.emit(True))
         export_all.clicked.connect(lambda: self.export_requested.emit(False))
         for button in (inspect, rename, export_current, export_all):
             buttons.addWidget(button)
+        catalog_button = QPushButton("Danh mục thành phần…")
+        menu = QMenu(catalog_button)
+        menu.addAction("Nhập danh mục…").triggered.connect(self.import_component_dialog)
+        menu.addAction("Tệp mẫu CSV/XLSX…").triggered.connect(
+            self.component_template_dialog
+        )
+        catalog_button.setMenu(menu)
+        buttons.addWidget(catalog_button)
         help_button = QPushButton("Cách tính…")
         help_button.clicked.connect(self.show_methodology)
         buttons.addWidget(help_button)
@@ -224,6 +270,7 @@ class ResultsView(QWidget):
         self.day_type.selectionChanged.connect(self.refresh_dates)
         self.level.currentIndexChanged.connect(self.render_results)
         self.component_name.textChanged.connect(self.render_results)
+        self.component_selector.currentIndexChanged.connect(self.select_component)
         self.mode.currentIndexChanged.connect(self.change_mode)
         self.date.currentIndexChanged.connect(self.render_results)
         self.daily_method.currentIndexChanged.connect(self.render_results)
@@ -262,15 +309,33 @@ class ResultsView(QWidget):
             widget.set_selected(selected or (widget.currentData(),))
         widget.blockSignals(False)
 
+    def clear_result(self) -> None:
+        self.result, self.comparison, self.annotations = None, None, []
+        self.daily_data = {}
+        self.temporal.reset({"config": {}, "cells": []})
+        self.set_component_catalog(None)
+        self.component_name.clear()
+        for control in (self.period, self.day_type, self.date, self.group):
+            self.fill(control, [])
+        self.clear_current_view()
+        self.import_model.set_records([])
+        self.clear_chart_point()
+        self.comparison_label.clear()
+        self.comparison_label.hide()
+        self.rename_button.setEnabled(False)
+        self.summary.setText("Chọn một lần nghiên cứu trong dự án để xem kết quả.")
+
     def set_result(self, result: dict, annotations: list[dict] | None = None) -> None:
         self.result, self.annotations, self.comparison = result, annotations or [], None
         self.daily_data = {}
+        self.temporal.reset(result)
         self.current_view = None
         for model in self.findChildren(RecordsModel):
             model.set_records([])
         for control in (self.day_type, self.date, self.group):
             self.fill(control, [])
         self.canvas.figure.clear()
+        self.series_visibility.reset()
         self.canvas.draw_idle()
         self.summary.setText(
             "Không có ngành-tháng phù hợp trong lần nghiên cứu này. Kiểm tra phạm vi ngành trước khi chạy lại."
@@ -294,13 +359,94 @@ class ResultsView(QWidget):
         )
         self.refresh_periods()
 
+        if self.component_catalog is not None:
+            self.set_component_catalog(self.component_catalog)
+
     def named_result(self) -> dict:
         if self.result is None:
             raise ValueError("no result is loaded")
-        return apply_annotations(self.result, self.annotations)
+        return apply_component_catalog(
+            apply_annotations(self.result, self.annotations), self.component_catalog
+        )
+
+    def set_component_catalog(self, catalog: dict | None) -> None:
+        self.component_catalog = catalog
+        rows = [] if catalog is None else catalog["rows"]
+        names = {r["industry_code"]: r["industry_name"] for r in rows}
+        codes = sorted(
+            names.keys()
+            | {cell["industry_code"] for cell in (self.result or {}).get("cells", [])}
+        )
+        self.fill(
+            self.industry,
+            [
+                (f"{code} · {names[code]}" if code in names else code, code)
+                for code in codes
+            ],
+        )
+        groups = {r["component_code"]: r["component_name"] for r in rows}
+        self.fill(
+            self.component_selector,
+            [("Tự chọn mã ngành", None)]
+            + [(f"{code} · {name}", code) for code, name in sorted(groups.items())],
+        )
+        self.refresh_periods()
+        if self.component_selector.currentData() is not None:
+            self.select_component()
+
+    def select_component(self) -> None:
+        code = self.component_selector.currentData()
+        if code is None or self.component_catalog is None:
+            self.render_results()
+            return
+        rows = [
+            r for r in self.component_catalog["rows"] if r["component_code"] == code
+        ]
+        choose(self.level, "component")
+        self.component_name.setText(rows[0]["component_name"])
+        self.industry.set_selected(tuple(r["industry_code"] for r in rows))
+
+    def import_component_dialog(self) -> None:
+        from load_research.ui.component_import import ComponentImportDialog
+
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Nhập danh mục thành phần phụ tải",
+            "",
+            "Bảng dữ liệu (*.csv *.xlsx *.parquet)",
+        )
+        if not path:
+            return
+        dialog = ComponentImportDialog(path, parent=self)
+        if dialog.exec():
+            self.component_import_requested.emit(dialog.options())
+
+    def component_template_dialog(self) -> None:
+        from load_research.ui.template_dialog import TemplateDialog
+
+        TemplateDialog(category="components", parent=self).exec()
 
     def export_options(self, *, selected: bool) -> dict:
         return {
+            "component_catalog_revision": None
+            if self.component_catalog is None
+            else self.component_catalog["revision"],
+            "hidden_series_ids": self.series_visibility.hidden_ids()
+            if selected
+            else [],
+            "show_components": self.components.isChecked()
+            or self.mode.currentData() == "customer",
+            "chart_stacked": self.stacked.isChecked()
+            and self.mode.currentData() == "representative",
+            **(
+                {
+                    "date_start": self.temporal.context()["date_start"],
+                    "date_end": self.temporal.context()["date_end"],
+                    "customer_id": self.temporal.context()["customer_id"],
+                }
+                if selected and self.mode.currentData() in ("range", "customer")
+                else {}
+            ),
             "interval_minutes": self.resolution.currentData(),
             "unit": self.unit.currentData(),
             "scope": self.scope.currentData(),
@@ -319,7 +465,7 @@ class ResultsView(QWidget):
                 "name": "",
             },
             "daily_method": self.daily_method.currentData()
-            if self.mode.currentData() == "daily"
+            if self.mode.currentData() in ("daily", "range", "customer")
             else None,
             "dates": (self.date.currentData(),)
             if selected and self.mode.currentData() == "daily"
@@ -332,14 +478,19 @@ class ResultsView(QWidget):
     def current_cell(self) -> dict | None:
         if self.result is None:
             return None
+        available = [
+            cell
+            for cell in self.named_result()["cells"]
+            if cell["year_month"] == self.period.currentData()
+        ]
         return next(
             (
                 cell
-                for cell in self.named_result()["cells"]
+                for cell in available
                 if cell["industry_code"] == self.industry.currentData()
                 and cell["year_month"] == self.period.currentData()
             ),
-            None,
+            available[0] if available else None,
         )
 
     def refresh_periods(self) -> None:
@@ -350,6 +501,9 @@ class ResultsView(QWidget):
                     for cell in self.result["cells"]
                     if cell["industry_code"] in self.industry.selected_data()
                 }
+            )
+            periods = periods or sorted(
+                {cell["year_month"] for cell in self.result["cells"]}
             )
             self.fill(self.period, [(period, period) for period in periods])
             self.refresh_days()
@@ -364,6 +518,7 @@ class ResultsView(QWidget):
                     (labels[kind], kind)
                     for kind in ("weekday", "saturday", "sunday", "holiday")
                     if cell["day_counts"].get(kind, 0)
+                    or self.mode.currentData() == "range"
                 ],
             )
         self.daily_data = {}
@@ -434,13 +589,57 @@ class ResultsView(QWidget):
             name=self.component_name.text().strip()
             if self.level.currentData() == "component"
             else "",
+            component_code=self.component_selector.currentData() or ""
+            if self.level.currentData() == "component"
+            else "",
         )
 
     def change_mode(self) -> None:
-        self.daily_row.setVisible(self.mode.currentData() == "daily")
-        self.render_results()
+        mode = self.mode.currentData()
+        customer = mode == "customer"
+        for label, control in (
+            ("Ngành", self.industry),
+            ("Tháng", self.period),
+            ("Loại ngày", self.day_type),
+        ):
+            visible = not customer and not (label == "Tháng" and mode == "range")
+            self.filter_labels[label].setVisible(visible)
+            control.setVisible(visible)
+        for widget in (
+            self.level,
+            self.component_selector,
+            self.component_name,
+            self.scope,
+            self.components,
+        ):
+            widget.setVisible(not customer)
+        self.stacked.setVisible(mode == "representative")
+        self.rename_button.setVisible(mode == "representative")
+        self.export_all_button.setVisible(mode not in ("range", "customer"))
+        for index in range(1, 9):
+            self.data_tabs.setTabVisible(index, not customer)
+        self.data_tabs.setTabVisible(9, customer)
+        self.daily_row.setVisible(mode != "representative")
+        self.temporal.set_mode(mode)
+        self.date.setVisible(mode == "daily")
+        self.daily_method.setVisible(mode in ("daily", "range"))
+        self.load_daily_button.setText(
+            {"range": "Nạp khoảng ngày", "customer": "Nạp khách hàng"}.get(
+                mode, "Nạp dữ liệu ngày"
+            )
+        )
+        self.period.setEnabled(mode not in ("range", "customer"))
+        self.day_type.setEnabled(mode != "customer")
+        self.scope.setEnabled(mode != "customer")
+        self.refresh_days()
 
     def request_daily(self) -> None:
+        if self.result and self.mode.currentData() in ("range", "customer"):
+            try:
+                self.temporal.request()
+            except ValueError as error:
+                self.summary.setText(format_error(error))
+            return
         if self.result and self.period.currentData():
             self.daily_requested.emit(
                 {
@@ -462,10 +661,33 @@ class ResultsView(QWidget):
                 event,
                 minutes=self.current_view["interval_minutes"],
                 unit=self.current_view["unit"],
+                timeline="timestamps" in self.current_view,
             )
             if text:
                 self.point_label.setText(text)
                 self.point_label.setToolTip(text)
+
+    def clear_chart_point(self) -> None:
+        self.point_label.setText("Bấm biểu đồ để xem số liệu chu kỳ.")
+        self.point_label.setToolTip("")
+
+    def clear_current_view(self) -> None:
+        self.current_view = None
+        self.canvas.figure.clear()
+        self.canvas.draw_idle()
+        self.series_visibility.reset()
+        for model in (
+            self.table_model,
+            self.quality_model,
+            self.members_model,
+            self.excluded_model,
+            self.factors_model,
+            self.missing_model,
+            self.statistics_model,
+            self.reconciliation_model,
+            self.customer_quality_model,
+        ):
+            model.set_records([])
 
     def show_methodology(self) -> None:
         from load_research.methodology import CALCULATIONS
@@ -480,28 +702,39 @@ class ResultsView(QWidget):
         dialog.exec()
 
     def render_results(self) -> None:
-        self.point_label.setText("Bấm biểu đồ để xem số liệu chu kỳ.")
-        self.point_label.setToolTip("")
+        self.clear_chart_point()
         cell, kind = self.current_cell(), self.day_type.currentData()
         if self.result is None or cell is None or kind is None:
             return
         selection = self.selection()
         self.component_name.setEnabled(selection.level == "component")
-        self.industry.setEnabled(selection.level != "organization")
+        self.industry.setEnabled(
+            selection.level != "organization"
+            and not (
+                selection.level == "component" and self.component_selector.currentData()
+            )
+        )
         self.stacked.setEnabled(selection.normalization is None)
         self.group.setEnabled(
             selection.level != "organization"
+            and cell["industry_code"] in selection.industry_codes
             and len(self.industry.selected_data()) == 1
             and len(self.day_type.selected_data()) == 1
-            and self.mode.currentData() != "daily"
+            and self.mode.currentData() == "representative"
         )
+        self.rename_button.setEnabled(self.group.isEnabled() and self.group.count() > 1)
         try:
-            if self.mode.currentData() == "daily":
+            if self.mode.currentData() in ("range", "customer"):
+                view = self.temporal.current()
+                if view is None:
+                    self.clear_current_view()
+                    self.summary.setText(
+                        "Chọn khoảng ngày và Nạp khoảng ngày / Nạp khách hàng để xem dữ liệu đã lưu."
+                    )
+                    return
+            elif self.mode.currentData() == "daily":
                 if not self.daily_data or not self.date.currentData():
-                    self.canvas.figure.clear()
-                    self.canvas.draw_idle()
-                    self.table_model.set_records([])
-                    self.current_view = None
+                    self.clear_current_view()
                     self.summary.setText(
                         "Chọn Nạp dữ liệu ngày để đọc tập mẫu đã lưu trong tiến trình nền."
                     )
@@ -518,11 +751,13 @@ class ResultsView(QWidget):
             self.current_view = view
             self.factors_model.set_records(view.get("daily_factors", view["factors"]))
             self.missing_model.set_records(view["missing"])
-            families = (
+            families: tuple[str, ...] = (
                 ("industry", "day_type", "behavior", "source", "processed", "expanded")
                 if self.components.isChecked()
                 else ()
             )
+            if self.mode.currentData() == "customer":
+                families = ("source", "processed")
             if self.group.isEnabled() and self.group.currentData():
                 view = {
                     **view,
@@ -541,10 +776,7 @@ class ResultsView(QWidget):
             )
             records = interval_records(view)
         except (ValueError, KeyError, TypeError) as error:
-            self.current_view = None
-            self.table_model.set_records([])
-            self.canvas.figure.clear()
-            self.canvas.draw_idle()
+            self.clear_current_view()
             self.summary.setText(format_error(error))
             return
         self.comparison_label.setText("")
@@ -552,7 +784,7 @@ class ResultsView(QWidget):
         if (
             self.comparison
             and len(view["industry_codes"]) == len(view["day_types"]) == 1
-            and self.mode.currentData() != "daily"
+            and self.mode.currentData() == "representative"
         ):
             self._compare(
                 cell,
@@ -570,16 +802,36 @@ class ResultsView(QWidget):
             )
         self.comparison_label.setVisible(bool(self.comparison_label.text()))
         self.table_model.set_records(records)
+        customer_mode = self.mode.currentData() == "customer"
+        for index in range(1, 9):
+            self.data_tabs.setTabVisible(index, not customer_mode)
+        self.data_tabs.setTabVisible(9, customer_mode)
+        if customer_mode:
+            self.customer_quality_model.set_records(view.get("inspection_rows", []))
+            for model in (
+                self.quality_model,
+                self.members_model,
+                self.excluded_model,
+                self.statistics_model,
+                self.reconciliation_model,
+            ):
+                model.set_records([])
+            self.summary.setText(
+                f"Khách hàng {view['customer_id']} · {view['day_count']} ngày · Điện năng sau VEE: {format_value('value', view['energy_selected_kwh'])} kWh · Kiểm tra bảng Chi tiết VEE khách hàng."
+            )
+            self.series_visibility.reset()
+            self.canvas.draw_idle()
+            return
         cells = [
             item
             for item in self.named_result()["cells"]
-            if item["year_month"] == selection.period
+            if item["year_month"] in view.get("periods", [selection.period])
             and item["industry_code"] in view["industry_codes"]
         ]
         quality = [
             row
             for row in self.result.get("quality", [])
-            if row["period"] == selection.period
+            if row["period"] in view.get("periods", [selection.period])
         ]
         self.quality_model.set_records(
             [
@@ -634,11 +886,12 @@ class ResultsView(QWidget):
         self.summary.setText(
             f"{len(view['industry_codes'])} ngành · {view['day_count']} ngày · "
             f"Điện năng lựa chọn: {format_value('value', view['energy_selected_kwh'])} kWh · "
-            f"Thương phẩm tháng: {format_value('value', view['billing_kwh'])} kWh · "
+            f"{'Thương phẩm các tháng' if 'timestamps' in view else 'Thương phẩm tháng'}: {format_value('value', view['billing_kwh'])} kWh · "
             + ("Đủ đường tổng hợp" if view["complete"] else "Chưa đủ đường tổng hợp")
             + f" · {sum(item['result']['status'] not in ('valid', 'valid_with_warnings') for item in cells)} ngành cần xem trạng thái mẫu"
         )
         self.canvas.draw_idle()
+        self.series_visibility.reset()
 
     def _compare(
         self, cell, kind, target, unit, normalization, key, figure, records
@@ -712,6 +965,7 @@ class ResultsView(QWidget):
                 linestyle="--",
                 color="#B04B2A",
                 label="Lần so sánh",
+                gid="comparison",
             )
             figure.axes[0].legend(fontsize=8)
             for row, value in zip(records, vector, strict=True):
@@ -720,9 +974,19 @@ class ResultsView(QWidget):
 
     def rename_dialog(self) -> None:
         cell, label = self.current_cell(), self.group.currentData()
-        if cell is None or label is None or not self.group.isEnabled():
-            self.comparison_label.setText("Chọn một nhóm cụ thể trước khi đặt tên.")
+        if cell is None or not self.group.isEnabled() or self.group.count() < 2:
+            self.comparison_label.setText(
+                "Chọn một ngành và một loại ngày có phân nhóm trước khi đặt tên."
+            )
             return
+        if label is None:
+            names = [self.group.itemText(i) for i in range(1, self.group.count())]
+            selected, accepted = QInputDialog.getItem(
+                self, "Nhóm hành vi", "Chọn nhóm để đặt tên:", names, editable=False
+            )
+            if not accepted:
+                return
+            label = self.group.itemData(self.group.findText(selected))
         name, accepted = QInputDialog.getText(
             self, "Tên nhóm hành vi", "Tên mô tả nghiệp vụ:"
         )
@@ -742,38 +1006,3 @@ class ResultsView(QWidget):
                     "reason": reason,
                 }
             )
-
-    def inspect_dialog(self) -> None:
-        cell = self.current_cell()
-        if cell is None or self.result is None:
-            return
-        identifiers = {member["customer_id"] for member in cell["members"]}
-        identifiers.update(
-            identifier
-            for row in self.result.get("quality", [])
-            if row["period"] == cell["year_month"]
-            for identifier in row.get("excluded", {})
-        )
-        if not identifiers:
-            self.comparison_label.setText(
-                "Không có khách hàng để kiểm tra trong ô này."
-            )
-            return
-        customer_id, accepted = QInputDialog.getItem(
-            self, "Kiểm tra ngày", "Mã khách hàng:", sorted(identifiers), editable=False
-        )
-        if accepted:
-            day, accepted = QInputDialog.getText(
-                self,
-                "Kiểm tra ngày",
-                "Ngày YYYY-MM-DD:",
-                text=f"{cell['year_month']}-01",
-            )
-            if accepted:
-                self.inspect_requested.emit(
-                    {
-                        "run_id": self.result["run_id"],
-                        "customer_id": customer_id,
-                        "date": day,
-                    }
-                )
