@@ -14,6 +14,10 @@ NOTICE = (
     "Dữ liệu minh hoạ. Thay toàn bộ dòng ví dụ bằng dữ liệu thực trước khi nghiên cứu."
 )
 FIELD_HELP = {
+    "Mã ngành nghề": "Mã ngành dạng chuỗi; giữ số 0 đầu và khớp CMIS/thương phẩm.",
+    "Tên ngành nghề": "Tên thống nhất cho mỗi mã ngành.",
+    "Mã thành phần": "Mỗi ngành thuộc đúng một mã thành phần để tránh đếm đôi.",
+    "Tên thành phần phụ tải": "Tên thống nhất cho mỗi mã thành phần phụ tải.",
     "customer_id": "Mã khách hàng dạng chuỗi; giữ nguyên số 0 đầu.",
     "industry_code": "Mã ngành nghề dạng chuỗi, dùng thống nhất giữa CMIS và thương phẩm.",
     "industry_name": "Tên ngành nghề; nhất quán theo mã ngành.",
@@ -60,6 +64,25 @@ class InputTemplate:
 
 
 TEMPLATES = {
+    "components": InputTemplate(
+        "Danh mục thành phần phụ tải",
+        "components",
+        (
+            {
+                "Mã ngành nghề": "001",
+                "Tên ngành nghề": "Cơ khí",
+                "Mã thành phần": "CN",
+                "Tên thành phần phụ tải": "Công nghiệp",
+            },
+            {
+                "Mã ngành nghề": "002",
+                "Tên ngành nghề": "Dệt may",
+                "Mã thành phần": "CN",
+                "Tên thành phần phụ tải": "Công nghiệp",
+            },
+        ),
+        "Nhập từ mục 3 · Kết quả → Danh mục thành phần. Mỗi ngành thuộc một thành phần; tổng hợp sau khi suy rộng riêng từng ngành.",
+    ),
     "cmis": InputTemplate(
         "CMIS · Khách hàng mẫu",
         "cmis",
