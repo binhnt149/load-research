@@ -2,11 +2,11 @@
 
 Ứng dụng nghiên cứu phụ tải cục bộ theo **ngành × năm-tháng × loại ngày**, từ tập mẫu đã chốt. Có biểu đồ chung, thành phần hành vi, chuẩn hoá Q/U/V, suy rộng theo thương phẩm và xuất 24/48 chu kỳ bằng kW/kWh. Ứng dụng không gửi dữ liệu lên mạng.
 
-Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kết quả kiểm chứng bản hiện tại: [release 0.1.2](docs/verification/release-0.1.2.md).
+Đặc tả: [load-research.md](load-research.md). Tiến độ và nghiệm thu: [tasks.md](tasks.md). Kiểm chứng tính năng: [Kết quả](docs/verification/results-range.md). Theo dõi phát hành: [release 0.1.3](docs/verification/release-0.1.3.md).
 
-## Bản phát hành 0.1.2
+## Bản phát hành 0.1.3
 
-[GitHub Release v0.1.2](https://github.com/binhnt149/load-research/releases/tag/v0.1.2) đã cung cấp DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel. Workflow tag đạt mọi quality/native/publish gate; 188/188 test pass trên mỗi OS. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.2.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
+[GitHub Release v0.1.3](https://github.com/binhnt149/load-research/releases/tag/v0.1.3) là trang tải DMG macOS Apple Silicon, ZIP portable Windows x64 và Python wheel sau khi workflow phát hành hoàn tất. Bản này bổ sung khoảng ngày xuyên tháng, danh mục thành phần phụ tải, tra cứu khách hàng trước/sau VEE và biểu đồ bật/tắt từng đường. Xem [ghi chú và cách cài đặt](docs/releases/v0.1.3.md), [changelog](CHANGELOG.md). Đây là bản **thử nghiệm**, các gói native chưa ký số; UAT trên máy sạch vẫn thuộc E02.
 
 ## Giao diện và tệp mẫu
 

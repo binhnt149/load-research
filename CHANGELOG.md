@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.3 — 2026-10-27
+
+Bản thử nghiệm nâng cấp tổng hợp và tra cứu Kết quả; giữ nguyên phương pháp `class-profile-v1` và snapshot nghiên cứu đã lưu.
+
 - Trục Y tự co giãn theo đường đang hiện; chọn riêng từng đường, hiện/ẩn tất cả; xuất hình giữ lựa chọn đường, bảng dữ liệu vẫn đầy đủ.
 - Xem/xuất từ ngày đến ngày xuyên tháng, giữ hệ số riêng ngành-tháng; chuẩn hóa toàn khoảng, ngày và phạm vi thành viên đúng từng tháng.
 - Nhập danh mục ngành/thành phần từ CSV/XLSX có mẫu/xem trước, lưu phiên bản/checksum tại dự án và đóng băng trong báo cáo.

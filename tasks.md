@@ -108,3 +108,8 @@ Bằng chứng Red/Green thô theo task được giữ cục bộ tại `docs/ve
 - [x] **T56 — Tra cứu chuỗi từng khách hàng.** Phụ thuộc T53. Nghiệm thu: xác minh catalog/cache, đọc một khách hàng theo tháng, giữ trước/sau VEE/lý do/chất lượng; không nhân trọng số hay hệ số suy rộng, khách hàng không tồn tại bị từ chối. Verify: integration nguồn offline/tamper/khách hàng bị loại/hủy.
 - [x] **T57 — UI/xuất khách hàng và ẩn Nhóm.** Phụ thuộc T55/T56. Nghiệm thu: tìm mã khách hàng, xem một ngày hoặc từ–đến, kW/kWh 24/48, đọc/export điểm trước/sau; ẩn bộ chọn Nhóm thừa; không giữ dữ liệu khách hàng cũ. Verify: Qt và CSV/XLSX an toàn.
 - [x] **T58 — Tài liệu và kiểm chứng cuối.** Phụ thuộc T49–T57. Nghiệm thu: tài liệu mô tả phạm vi/đơn vị/chuẩn hóa/danh mục và thao tác; full suite không fail/skip/xfail, Ruff/mypy/wheel pass, mutation và review, runtime đủ trạng thái. Verify: 331/331 pass; [báo cáo kiểm chứng](docs/verification/results-range.md), Ruff/mypy 59 module, wheel và Cocoa pass. E01/E02/E03 giữ riêng.
+
+## Phát hành 0.1.3 — Windows và macOS
+
+- [x] **T59 — Chuẩn bị phiên bản 0.1.3.** Phụ thuộc T58. Nghiệm thu: metadata/tag thống nhất, changelog/ghi chú đầy đủ; Red phiên bản rồi full suite không fail/skip, lint/type/wheel đạt; chỉ stage phần README của release. Verify: 331/331 pass, Ruff/mypy 59 module, wheel 59/59 module khớp source, metadata/tag v0.1.3 đạt.
+- [ ] **T60 — Phát hành và xác minh asset.** Phụ thuộc T59. Nghiệm thu: cùng tag chạy quality hai OS, native DMG/Windows ZIP và smoke đạt, GitHub Release có đủ asset/SHA256SUMS; tải lại và xác minh, ghi báo cáo. Không đóng E01/E02/E03 bằng smoke CI.
