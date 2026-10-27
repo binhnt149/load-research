@@ -29,8 +29,8 @@ from PySide6.QtWidgets import (
 from load_research.calendar import ResearchCalendar, month_days
 from load_research.components import apply_component_catalog
 from load_research.error_messages import format_error, import_issue_rows
-from load_research.exports import apply_annotations, cluster_display_name, convert_curve
-from load_research.presentation import DAY_TYPES, field_label, format_value
+from load_research.exports import apply_annotations, cluster_display_name
+from load_research.presentation import DAY_TYPES, format_value
 from load_research.result_reporting import interval_records, render_view
 from load_research.result_view import (
     ResultSelection,
@@ -41,6 +41,7 @@ from load_research.ui.chart_controls import SeriesVisibility
 from load_research.ui.forms import choose, combo
 from load_research.ui.models import RecordsModel
 from load_research.ui.result_controls import MultiSelectCombo, chart_point_text
+from load_research.ui.run_comparison import compare_runs
 from load_research.ui.temporal_controls import TemporalControls
 
 
@@ -780,21 +781,15 @@ class ResultsView(QWidget):
             self.summary.setText(format_error(error))
             return
         self.comparison_label.setText("")
-        key = "sample" if selection.scope == "sample_portfolio" else "energy"
         if (
             self.comparison
             and len(view["industry_codes"]) == len(view["day_types"]) == 1
             and self.mode.currentData() == "representative"
         ):
-            self._compare(
-                cell,
-                kind,
-                selection.interval_minutes,
-                selection.unit,
-                selection.normalization,
-                key,
-                figure,
-                records,
+            self.comparison_label.setText(
+                compare_runs(
+                    self.result, self.comparison, cell, kind, selection, figure, records
+                )
             )
         elif self.comparison:
             self.comparison_label.setText(
@@ -892,85 +887,6 @@ class ResultsView(QWidget):
         )
         self.canvas.draw_idle()
         self.series_visibility.reset()
-
-    def _compare(
-        self, cell, kind, target, unit, normalization, key, figure, records
-    ) -> None:
-        if self.result is None or self.comparison is None:
-            return
-        if not records or records[0].get("Chung") is None:
-            self.comparison_label.setText(
-                "Lần hiện tại thiếu đường cong cho lựa chọn này; chưa thể tính chênh lệch."
-            )
-            return
-        other = next(
-            (
-                item
-                for item in self.comparison["cells"]
-                if item["industry_code"] == cell["industry_code"]
-                and item["year_month"] == cell["year_month"]
-            ),
-            None,
-        )
-        changes = [
-            name
-            for name in sorted(
-                set(self.result["config"]) | set(self.comparison["config"])
-            )
-            if self.result["config"].get(name) != self.comparison["config"].get(name)
-        ]
-        for name in ("calendar", "request", "software"):
-            if self.result.get(name) != self.comparison.get(name):
-                changes.append(name)
-        current_ids = {
-            member["customer_id"]
-            for member in cell["members"]
-            if member["day_type"] == kind
-        }
-        other_ids = (
-            {
-                member["customer_id"]
-                for member in other["members"]
-                if member["day_type"] == kind
-            }
-            if other
-            else set()
-        )
-        self.comparison_label.setText(
-            f"So với lần nghiên cứu {self.comparison['run_id'][:12]} · tham số đổi: {', '.join(f'{field_label(name)} ({name})' for name in changes) or 'không'} · "
-            f"mẫu chỉ ở lần hiện tại: {len(current_ids - other_ids)}; chỉ ở lần so sánh: {len(other_ids - current_ids)}"
-        )
-        if not other or kind not in other["result"][key]:
-            self.comparison_label.setText(
-                self.comparison_label.text() + " · không có đường cong tương ứng"
-            )
-            return
-        try:
-            vector = convert_curve(
-                other["result"][key][kind],
-                self.comparison["config"]["interval_minutes"],
-                target,
-                unit,
-                normalization,
-            )
-        except ValueError:
-            self.comparison_label.setText(
-                self.comparison_label.text() + " · chọn độ phân giải thô hơn để so sánh"
-            )
-            return
-        if vector is not None:
-            figure.axes[0].plot(
-                [index * target / 60 for index in range(len(vector))],
-                vector,
-                linestyle="--",
-                color="#B04B2A",
-                label="Lần so sánh",
-                gid="comparison",
-            )
-            figure.axes[0].legend(fontsize=8)
-            for row, value in zip(records, vector, strict=True):
-                row["Lần so sánh"] = float(value)
-                row["Chênh lệch"] = row["Chung"] - float(value)
 
     def rename_dialog(self) -> None:
         cell, label = self.current_cell(), self.group.currentData()
