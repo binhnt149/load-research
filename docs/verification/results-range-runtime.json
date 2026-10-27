@@ -1,0 +1,140 @@
+{
+  "qt_platform": "cocoa",
+  "checks": [
+    {
+      "state": "component-monthly",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 48,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "2 ngành · 29 ngày · Điện năng lựa chọn: 8.175.945,729222 kWh · Thương phẩm tháng: 8.175.945,729222 kWh · Đủ đường tổng hợp · 0 ngành cần xem trạng thái mẫu"
+    },
+    {
+      "state": "range-representative-48",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 144,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "2 ngành · 3 ngày · Điện năng lựa chọn: 823.932,515348 kWh · Thương phẩm các tháng: 16.732.168,00399 kWh · Đủ đường tổng hợp · 0 ngành cần xem trạng thái mẫu"
+    },
+    {
+      "state": "range-variation-48",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 144,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "2 ngành · 3 ngày · Điện năng lựa chọn: 823.932,515348 kWh · Thương phẩm các tháng: 16.732.168,00399 kWh · Đủ đường tổng hợp · 0 ngành cần xem trạng thái mẫu"
+    },
+    {
+      "state": "range-selected-series",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 144,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "2 ngành · 3 ngày · Điện năng lựa chọn: 823.932,515348 kWh · Thương phẩm các tháng: 16.732.168,00399 kWh · Đủ đường tổng hợp · 0 ngành cần xem trạng thái mẫu"
+    },
+    {
+      "state": "range-24-kwh",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 72,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "2 ngành · 3 ngày · Điện năng lựa chọn: 823.932,515348 kWh · Thương phẩm các tháng: 16.732.168,00399 kWh · Đủ đường tổng hợp · 0 ngành cần xem trạng thái mẫu"
+    },
+    {
+      "state": "range-normalized",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 72,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "2 ngành · 3 ngày · Điện năng lựa chọn: 823.932,515348 kWh · Thương phẩm các tháng: 16.732.168,00399 kWh · Đủ đường tổng hợp · 0 ngành cần xem trạng thái mẫu"
+    },
+    {
+      "state": "customer-range",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 72,
+      "canvas": [
+        958,
+        181
+      ],
+      "summary": "Khách hàng 000001 · 3 ngày · Điện năng sau VEE: 485,600916 kWh · Kiểm tra bảng Chi tiết VEE khách hàng."
+    },
+    {
+      "state": "customer-table",
+      "window": [
+        1024,
+        768
+      ],
+      "rows": 72,
+      "canvas": [
+        958,
+        180
+      ],
+      "summary": "Khách hàng 000001 · 3 ngày · Điện năng sau VEE: 485,600916 kWh · Kiểm tra bảng Chi tiết VEE khách hàng."
+    },
+    {
+      "state": "customer-large",
+      "window": [
+        1240,
+        860
+      ],
+      "rows": 72,
+      "canvas": [
+        1174,
+        243
+      ],
+      "summary": "Khách hàng 000001 · 3 ngày · Điện năng sau VEE: 485,600916 kWh · Kiểm tra bảng Chi tiết VEE khách hàng."
+    }
+  ],
+  "status": "passed",
+  "source_commit": "f66c3c57121dea261022e1c39d9c1a84c89f5950",
+  "captured_states": [
+    "component-monthly.png",
+    "range-representative-48.png",
+    "range-variation-48.png",
+    "range-selected-series.png",
+    "range-24-kwh.png",
+    "range-normalized.png",
+    "customer-range.png",
+    "customer-table.png",
+    "customer-large.png"
+  ],
+  "screenshots": [
+    "results-range-range-variation-48.png",
+    "results-range-customer-range.png",
+    "results-range-customer-table.png"
+  ]
+}

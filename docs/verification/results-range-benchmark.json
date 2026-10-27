@@ -1,0 +1,24 @@
+{
+  "scope": "Saved aggregate range retrieval only, not import/VEE/12-month benchmark",
+  "customers": 7000,
+  "months": 1,
+  "measurements": [
+    {
+      "method": "representative",
+      "seconds": 0.14600325003266335,
+      "days": 31,
+      "intervals_per_curve": 1488,
+      "series_count": 5,
+      "balance_error_kwh": 0.0
+    },
+    {
+      "method": "variation",
+      "seconds": 0.12724762503057718,
+      "days": 31,
+      "intervals_per_curve": 1488,
+      "series_count": 5,
+      "balance_error_kwh": 0.0
+    }
+  ],
+  "process_peak_rss_bytes": 112197632
+}

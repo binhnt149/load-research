@@ -1,0 +1,62 @@
+{
+  "source_commit": "f66c3c57121dea261022e1c39d9c1a84c89f5950",
+  "checked_at": "2026-10-27T19:22:35.599748+07:00",
+  "local": {
+    "tests": "331",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "39.665"
+  },
+  "ruff_lint": "passed",
+  "ruff_format": "passed",
+  "mypy": {
+    "status": "passed",
+    "source_files": 59
+  },
+  "wheel": {
+    "status": "passed",
+    "modules_matching_source": 59,
+    "wheel_file": "load_research-0.1.2-py3-none-any.whl",
+    "sha256": "17308a6d33ac581308a62888f9dafe4464f97c9a59c50147d3a2e589cb03d78f",
+    "smoke": {
+      "status": "passed",
+      "module_imports": 59,
+      "source": "extracted wheel outside checkout",
+      "catalog_leading_zero": "preserved"
+    }
+  },
+  "audit": {
+    "runtime_dev": {
+      "packages": 72,
+      "known_vulnerabilities": 0
+    },
+    "build": {
+      "packages": 3,
+      "known_vulnerabilities": 0
+    }
+  },
+  "mutation": {
+    "mutation": "Remove worker workspace-root ownership guard",
+    "test": "test_completed_temporal_response_cannot_cross_project_boundary[False]",
+    "mutated_test_exit_code": 1,
+    "detected": true,
+    "source_restored": true
+  },
+  "review": {
+    "required_remaining": 0,
+    "critical_remaining": 0,
+    "findings_fixed": [
+      "Month-specific industry union",
+      "Month/day-type membership filter",
+      "Worker workspace ownership",
+      "Stacked image geometry and legend"
+    ]
+  },
+  "runtime": "Cocoa source passed; no new native installer or Windows run claimed",
+  "acceptance_open": [
+    "E01: real input data",
+    "E02: clean machine UAT on both OS",
+    "E03: 7000 customers x 12 months"
+  ]
+}
