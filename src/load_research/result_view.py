@@ -20,6 +20,7 @@ class ResultSelection:
     scope: str = "industry_scaled"
     level: str = "industries"
     name: str = ""
+    component_code: str = ""
 
     def __post_init__(self) -> None:
         if self.level not in ("industries", "component", "organization"):
@@ -219,6 +220,13 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
         "normalization": selection.normalization,
         "scope": selection.scope,
         "level": selection.level,
+        "component_code": selection.component_code,
+        "component_catalog_revision": result.get("component_catalog", {}).get(
+            "revision"
+        ),
+        "component_catalog_checksum": result.get("component_catalog", {}).get(
+            "checksum"
+        ),
         "missing": missing,
         "factors": factors,
         "billing_kwh": sum(billing)

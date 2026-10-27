@@ -173,11 +173,30 @@ class IntervalStore:
             raise ValueError(
                 "customer is not active with stable identity for the complete month"
             )
+        return self._read_customer_month(
+            period, customers[customer_id], target_minutes, catalog
+        )
+
+    def inspection_month(
+        self, period: str, customer_id: str, target_minutes: int, catalog: Catalog
+    ) -> MonthGrid:
+        links = catalog.by_customer.get(customer_id)
+        if not links:
+            raise ValueError("Mã khách hàng không có trong danh mục mẫu.")
+        return self._read_customer_month(
+            period, links[0].customer, target_minutes, catalog
+        )
+
+    def _read_customer_month(
+        self, period: str, customer: Customer, target_minutes: int, catalog: Catalog
+    ) -> MonthGrid:
+        if not self._validated:
+            raise ValueError("interval store must be validated before reading")
         days = month_days(period)
         cursor = self.connection.execute(
             "SELECT * FROM clean_intervals WHERE customer_id = ? AND start >= ? AND start < ? ORDER BY meter_id, start",
             (
-                customer_id,
+                customer.customer_id,
                 datetime.combine(days[0], datetime.min.time()),
                 datetime.combine(days[-1] + timedelta(days=1), datetime.min.time()),
             ),
@@ -187,9 +206,7 @@ class IntervalStore:
             while batch := cursor.fetchmany(20000):
                 yield from (MeterRecord(*row) for row in batch)
 
-        return self._month_grid(
-            customers[customer_id], records(), period, target_minutes, catalog
-        )
+        return self._month_grid(customer, records(), period, target_minutes, catalog)
 
     @staticmethod
     def _month_grid(
@@ -227,6 +244,7 @@ class IntervalStore:
             repair_blocked[day, slot] |= record.repair_blocked
         total, complete = np.zeros(shape), np.ones(shape, bool)
         total_estimated, total_known = np.zeros(shape, bool), np.ones(shape, bool)
+        any_active = np.zeros(shape, bool)
         starts = np.datetime64(start, "m") + (
             np.arange(np.prod(shape)) * minutes
         ).reshape(shape).astype("timedelta64[m]")
@@ -250,10 +268,13 @@ class IntervalStore:
                 ),
             )
             active = expected > 0
+            any_active |= active
             complete &= ~active | (covered == expected)
             total += energy
             total_estimated |= estimated & active
             total_known &= ~active | known
+        complete &= any_active
+        repair_blocked[~any_active] = True
         total[~complete] = np.nan
         total_known[~complete] = False
         return MonthGrid(
