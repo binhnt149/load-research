@@ -62,3 +62,19 @@ Dữ liệu ngày được xử lý trong worker, theo ngành-tháng, không n�
 Giao diện giữ theme hiện có, chia bộ lọc thành các hàng gọn; luôn phân biệt ngành nghề, thành phần phụ tải theo mã ngành và nhóm hành vi. Đổi bộ lọc không thay kích thước Figure độc lập với canvas. Click chọn điểm hiển thị chu kỳ/khoảng giờ/tên đường/giá trị/đơn vị; bảng chu kỳ là cách truy cập tương đương bằng bàn phím. Báo cáo GUI dùng tiêu đề/giá trị tiếng Việt, giữ schema nội bộ và tùy chọn xuất kỹ thuật để tái lập.
 
 Rủi ro: thiếu A/ngành/lịch, trộn cơ sở kỳ, nhóm hành vi trùng tên, ngày không đủ cohort, kết quả cũ thiếu artifact ngày, checksum cache, DPI/legend dài, console/CLI trên Windows. Verify bằng fixture tính tay, integration tệp thật, Qt hình học/sự kiện click, bộ xuất CSV/XLSX/PNG/SVG, smoke đóng gói phù hợp và full suite không skip.
+
+## Đợt 27/10/2026 — Khoảng ngày và danh mục thành phần
+
+T49 → T53 → T54 → T55; T50 → T51 → T52; T53 → T56 → T57; tất cả → T58.
+Danh sách trạng thái duy nhất là T49–T58 trong `tasks.md`; bổ sung vào kế hoạch cũ.
+Khoảng ngày hiển thị chuỗi thời gian liên tục từ 00:00 ngày đầu đến hết ngày cuối,
+bao gồm hai đầu, cho phép xuyên tháng trong các tháng nghiên cứu đã lưu. Hệ số
+suy rộng vẫn riêng ngành-tháng, không tính lại A theo khoảng đã chọn. Chuẩn hóa
+sau tổng/chuyển chu kỳ trên toàn khoảng; đường còn thiếu không có hình dạng chuẩn hóa.
+Danh mục là ánh xạ ngành→thành phần, mỗi ngành thuộc một thành phần để tránh đếm đôi.
+Nhập danh mục độc lập trong dự án; mỗi lần nhập lưu phiên bản bất biến và checksum,
+báo cáo đóng băng đúng phiên bản dùng; không buộc tính lại VEE cho dữ liệu đã xử lý.
+Tra cứu khách hàng đọc canonical cache và cấu hình đã chốt theo từng tháng trong
+worker, không lấy tổng ngành hoặc nhân trọng số làm dữ liệu đo của khách hàng.
+Tách các điều khiển biểu đồ/khoảng ngày/danh mục sang module nhỏ để tránh dồn tất
+cả vào ResultsView. Giữ nguyên chỉnh sửa README cục bộ của người dùng.

@@ -95,3 +95,16 @@ Spec: `load-research.md`. Kế hoạch: `tasks/plan.md`. `[x]` chỉ có nghĩa 
 ## Nhật ký kiểm chứng
 
 Bằng chứng Red/Green thô theo task được giữ cục bộ tại `docs/verification/`. Repository chứa báo cáo tổng hợp và JUnit cuối đã bỏ hostname. Kết quả cuối cùng và việc chưa kiểm chứng được ghi trong `docs/verification/final.md`; không thay thế task ngoài môi trường bằng dấu `[x]`.
+
+## Tra cứu khoảng ngày, thành phần và khách hàng — 27/10/2026
+
+- [x] **T49 — Dải trục và bật/tắt từng đường.** Phụ thuộc T48. Nghiệm thu: trục Y theo đường hiện, âm/0/hằng/thiếu không bị cắt; chọn đường theo tên, bảng không đổi, click bỏ đường ẩn và reset khi đổi bộ lọc. Verify: regression Red/Green `test_series_visibility.py` và chart layout.
+- [x] **T50 — Hợp đồng danh mục thành phần.** Phụ thuộc T48. Nghiệm thu: CSV/XLSX với bốn cột Việt/chuẩn, giữ mã 0 đầu, một ngành thuộc một thành phần, phát hiện tên/mã xung đột và vị trí lỗi; có mẫu. Verify: unit importer + tệp thật.
+- [x] **T51 — Lưu và đọc danh mục dự án.** Phụ thuộc T50. Nghiệm thu: nhập trong worker, phiên bản/checksum, mở lại và backup giữ danh mục, snapshot nghiên cứu không đổi. Verify: integration lưu/mở/giả mạo/hủy.
+- [x] **T52 — Chọn thành phần theo danh mục.** Phụ thuộc T51. Nghiệm thu: import/preview từ UI; chọn thành phần tự xác định các ngành, tên ngành hiển thị, tổng hợp cùng công thức ngành; xuất kèm phiên bản danh mục, thiếu ngành không thành 0. Verify: UI/integration export.
+- [x] **T53 — View khoảng ngày.** Phụ thuộc T49. Nghiệm thu: khoảng đóng từ–đến, xuyên tháng, lịch đã lưu, hai phương pháp và hệ số riêng từng tháng; giữ khoảng thiếu, chuẩn hóa toàn khoảng sau cộng. Verify: fixture tính tay và trường hợp biên.
+- [x] **T54 — Worker và xuất khoảng ngày.** Phụ thuộc T53. Nghiệm thu: chỉ đọc các tháng cần, hủy được; UI/bảng/CSV/XLSX/hình dùng cùng view, giữ ngày và 24/48 chu kỳ mỗi ngày. Verify: integration worker/export.
+- [x] **T55 — Chọn từ ngày đến ngày trên UI.** Phụ thuộc T54. Nghiệm thu: trục thời gian liên tục, click có ngày/chu kỳ, khoảng sai có thông báo Việt; đổi lựa chọn không nhận dữ liệu worker cũ; 1024×768 không che chart. Verify: Qt + Cocoa runtime.
+- [x] **T56 — Tra cứu chuỗi từng khách hàng.** Phụ thuộc T53. Nghiệm thu: xác minh catalog/cache, đọc một khách hàng theo tháng, giữ trước/sau VEE/lý do/chất lượng; không nhân trọng số hay hệ số suy rộng, khách hàng không tồn tại bị từ chối. Verify: integration nguồn offline/tamper/khách hàng bị loại/hủy.
+- [x] **T57 — UI/xuất khách hàng và ẩn Nhóm.** Phụ thuộc T55/T56. Nghiệm thu: tìm mã khách hàng, xem một ngày hoặc từ–đến, kW/kWh 24/48, đọc/export điểm trước/sau; ẩn bộ chọn Nhóm thừa; không giữ dữ liệu khách hàng cũ. Verify: Qt và CSV/XLSX an toàn.
+- [ ] **T58 — Tài liệu và kiểm chứng cuối.** Phụ thuộc T49–T57. Nghiệm thu: tài liệu mô tả phạm vi/đơn vị/chuẩn hóa/danh mục và thao tác; full suite không fail/skip/xfail, Ruff/mypy/wheel pass, mutation và review, runtime đủ trạng thái. Verify: báo cáo `docs/verification/results-range.md`. E01/E02/E03 giữ riêng.

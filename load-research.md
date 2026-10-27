@@ -870,3 +870,32 @@ Phạm vi mở rộng: ẩn cửa sổ dòng lệnh khi mở desktop Windows; Vi
 - Biểu đồ co giãn theo canvas sau resize và sau mọi đổi bộ lọc; click vào điểm xem khoảng thời gian, tên đường, trị số và đơn vị. Bộ xuất phải khớp chính xác phép tổng hợp đang xem, có phạm vi/ngày/phương pháp/độ phủ và công thức.
 - Nội dung người dùng đọc và báo cáo GUI dùng tiếng Việt chuyên ngành: điện năng tác dụng, công suất trung bình chu kỳ, điện năng thương phẩm, hệ số suy rộng, tập mẫu chung, độ phủ dữ liệu và đóng góp nhóm. Tên trường kỹ thuật trong nguồn/schema/manifest vẫn được giữ để ánh xạ và tái lập, kèm diễn giải tiếng Việt.
 - Tài liệu mới giải thích đầy đủ mọi chỉ tiêu ở tab Kết quả, công thức đơn vị/thời gian/chuẩn hóa/phân cụm/suy rộng/tổng hợp/ngày, điều kiện áp dụng, số 0/thiếu và ví dụ số đối chiếu được bằng test.
+
+## 29. Bổ sung ngày 27/10/2026 — khoảng ngày, danh mục và khách hàng
+
+- Biểu đồ tự xác định dải trục Y theo các đường đang hiện, có khoảng đệm, không
+  ép về 0 hoặc cắt giá trị âm. Có danh sách tên đường để bật/tắt riêng và hiện/ẩn
+  tất cả. Bật/tắt chỉ đổi hình, bảng số liệu giữ đầy đủ; click bỏ qua đường ẩn.
+- Có chế độ từ ngày đến ngày, bao gồm hai đầu, mỗi ngày từ 00:00 đến 24:00;
+  có thể xuyên tháng trong phạm vi các tháng đã nghiên cứu. Trục thời gian ghi
+  ngày/giờ, ngày không thuộc bộ lọc được ngắt đường thay vì nối qua khoảng trống.
+  Hai mô hình ngày vẫn dùng α/β của từng ngành-tháng từ đầy đủ tháng; không tính
+  hệ số từ riêng khoảng đang xem. Đổi 48/24 chu kỳ bảo toàn điện năng từng ngày.
+- Chuẩn hóa trên toàn chuỗi của khoảng chọn sau khi tổng hợp vật lý/chuyển chu kỳ.
+  Chuỗi thiếu chưa có hình dạng chuẩn hóa; không loại ô thiếu để giả đủ dữ liệu.
+  Metadata và thành viên xuất giữ đúng phạm vi ngành/loại ngày riêng từng tháng.
+- Nhập danh mục gồm Mã ngành nghề, Tên ngành nghề, Mã thành phần, Tên thành phần
+  phụ tải (chấp nhận tên cột kỹ thuật tương đương). Mỗi ngành thuộc một thành phần;
+  mã và tên phải nhất quán. Có CSV/XLSX mẫu, chọn sheet/dấu phân cách và xem trước.
+  Danh mục lưu riêng theo phiên bản/checksum tại dự án, không sửa snapshot đã chốt;
+  báo cáo ghi đúng phiên bản đã dùng. Chọn thành phần xác định chính xác tập ngành;
+  vẫn suy rộng từng ngành rồi cộng, không tạo một hệ số chung. Ngành thiếu vẫn thiếu.
+- Ẩn bộ chọn Nhóm không cần thiết trên hàng bộ lọc. Các đường đóng góp nhóm hành
+  vi và nhãn đã lưu vẫn xem được bằng điều khiển đường dữ liệu.
+- Có tìm mã khách hàng mẫu, xem một ngày hoặc khoảng ngày trước/sau VEE, cùng
+  lý do bù, ngày cho, cờ chất lượng và điều kiện ngày. Đọc từ catalog/cache xác
+  minh và cấu hình đã lưu theo từng tháng; không nhân trọng số hoặc hệ số suy rộng.
+  Khách hàng bị loại khỏi cohort vẫn tra cứu được. Ngoài thời gian hiệu lực ghép
+  công tơ là thiếu, không phải 0; VEE tra cứu không thay đổi tập mẫu hoặc kết quả run.
+- Xử lý dữ liệu ngày/khách hàng và nhập danh mục trong worker có hủy. Câu trả lời
+  worker phải khớp run, token và toàn bộ phạm vi đang chọn để không hiện dữ liệu cũ.

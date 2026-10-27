@@ -2,7 +2,7 @@
 
 CALCULATIONS = """# Cách tính kết quả nghiên cứu phụ tải
 
-Phiên bản phương pháp hiển thị: 26/10/2026. Các đường suy rộng là mô hình ước tính,
+Phiên bản phương pháp hiển thị: 27/10/2026. Các đường suy rộng là mô hình ước tính,
 không phải phép đo thực tế của toàn bộ khách hàng. Dữ liệu và tham số của mỗi lần
 nghiên cứu được giữ nguyên; thay tham số phải tạo lần nghiên cứu mới.
 
@@ -158,4 +158,66 @@ nghiên cứu, danh mục mẫu và dữ liệu ngày được kiểm tra checks
 cũ dựng lại chuỗi ngày từ cache đo đếm đã xác minh; không sửa snapshot đã chốt.
 CSV chặn ô công thức từ chuỗi nguồn; XLSX không diễn giải chuỗi thành công thức/URL.
 Không suy luận khoảng tin cậy đại diện quần thể nếu chưa có thiết kế mẫu xác suất.
+
+## 9. Khoảng ngày, danh mục thành phần và từng khách hàng
+
+Khoảng từ–đến bao gồm hai đầu, từ 00:00 ngày đầu đến 24:00 ngày cuối. Từng ngày
+vẫn có 48/24 chu kỳ; bảng dài ghi ngày + chu kỳ, bảng rộng có một hàng/đường/ngày.
+Trục thời gian dùng ngày/giờ. Khi lọc loại ngày, đường bị ngắt tại các ngày bị bỏ
+qua; không nội suy hoặc nối thẳng qua ngày đó. Tháng không thuộc nghiên cứu không
+được tự điền. Biểu đồ khách hàng luôn đọc mọi loại ngày trong khoảng đã chọn.
+
+Mỗi ngày dùng đúng Erep hoặc Evar của ngành-tháng tương ứng. α và β vẫn tính từ
+đầy đủ tháng, không tính lại từ riêng khoảng đang xem. Điện năng lựa chọn là tổng
+điện năng các chu kỳ/ngày thực sự được chọn. Thương phẩm các tháng là tổng A của
+các ngành-tháng liên quan, không phải A đã phân bổ riêng cho khoảng. Hai số thường
+khác nhau. Danh mục ngành và thành viên xuất giữ đúng ngành/loại ngày riêng từng
+tháng, kể cả khi danh mục hoặc lịch thay đổi giữa hai tháng.
+
+Chuẩn hóa của khoảng ngày áp dụng sau tổng hợp/chuyển chu kỳ, trên toàn chuỗi
+được chọn. Ví dụ hai ngày 48 chu kỳ ở mức 2 và 6 kWh: chuẩn hóa trung bình cho
+mức 0,5 và 1,5; không chuẩn hóa riêng mỗi ngày thành 1. Chuỗi còn ô thiếu hoặc
+đường 0 không có hình dạng chuẩn hóa. Giá trị vật lý gốc vẫn xem được khi bỏ
+chuẩn hóa; bảng Chi tiết VEE luôn giữ kWh ở chu kỳ nghiên cứu ban đầu.
+
+Danh mục nhập có bốn cột: Mã ngành nghề, Tên ngành nghề, Mã thành phần, Tên thành
+phần phụ tải; cũng chấp nhận industry_code, industry_name, component_code,
+component_name. Mỗi ngành thuộc một thành phần, tên nhất quán theo mã; dòng trùng
+hoàn toàn được gộp, dòng xung đột bị từ chối. Mã là chuỗi, giữ số 0 đầu. Chọn
+thành phần xác định tập ngành để cộng các đường đã suy rộng riêng theo mục 4.
+Không dùng một hệ số chung cho thành phần. Ngành chưa có mẫu/biểu đồ vẫn được
+báo thiếu, không bị bỏ khỏi danh mục để tạo một tổng giả đầy đủ.
+
+Mỗi lần nhập danh mục tạo phiên bản trong dự án, có checksum nội dung chuẩn.
+Không cần chạy lại VEE chỉ để đổi cách nhóm ngành. Kết quả nghiên cứu gốc không
+bị sửa; báo cáo đóng băng phiên bản/checksum và nội dung danh mục đã áp dụng.
+Danh mục vẫn dùng được khi tệp nhập ngoài đã mất và được giữ trong sao lưu dự án.
+
+Tra cứu khách hàng dùng đúng mã trong catalog/cache đã xác minh, theo tham số VEE
+và lịch của lần nghiên cứu. Không nhân w, α hoặc β; không dùng tổng ngành để đại
+diện khách hàng. Khách hàng bị loại khỏi cohort vẫn có thể tra cứu. Với quan hệ
+công tơ chỉ hiệu lực một phần tháng, phần ngoài hiệu lực là thiếu và bị chặn bù,
+không phải điện năng 0. VEE của tra cứu được dựng lại từ dữ liệu và cấu hình đã
+lưu; việc xem khách hàng bị loại không đưa họ trở lại cohort hoặc đổi snapshot.
+Cờ đủ điều kiện và độ phủ toàn tháng phải được đọc cùng số liệu. Ngày có đủ giá
+trị sau VEE vẫn có thể không đủ điều kiện nghiên cứu do tỷ lệ ước lượng quá cao.
+
+Đường dữ liệu… bật/tắt từng đường và tự điều chỉnh trục Y theo đường đang hiện;
+không ép trục về 0. Dữ liệu âm (ví dụ chênh lệch hai lần nghiên cứu), hằng số, 0
+và khoảng thiếu đều được giữ đúng. Bật/tắt chỉ thay hình, không xóa bảng số liệu.
+PNG/SVG xuất từ lựa chọn ghi lại trạng thái ẩn đường, CSV/XLSX vẫn đủ các đường.
+Với biểu đồ chồng, ẩn một dải giữ nguyên vị trí các dải khác để đối chiếu với
+đường tổng; không tính lại tổng của riêng các dải đang hiện.
+Đổi phạm vi/bộ lọc thiết lập lại lựa chọn đường để không mang nhầm trạng thái sang
+ngành hoặc khách hàng khác. Click ghi ngày/chu kỳ/giá trị của đường đang hiện;
+hover phần thông tin để đọc đầy đủ khi nhiều đường, hoặc dùng bảng bằng bàn phím.
+Nút Bảng ẩn/hiện biểu đồ để mở rộng bảng số liệu trên cửa sổ nhỏ.
+
+Trong mục 3 · Kết quả: Danh mục thành phần… cho nhập/xem trước hoặc lấy mẫu;
+chọn Từ ngày đến ngày hoặc Khách hàng mẫu, chọn Từ/Đến, phương pháp hoặc mã KH,
+rồi Nạp khoảng ngày/Nạp khách hàng. Đổi đơn vị/chu kỳ/chuẩn hóa dùng dữ liệu nền
+đã nạp. Đổi phạm vi/ngày/phương pháp/mã KH cần nạp lại; câu trả lời nền của lựa
+chọn cũ bị bỏ qua. Xuất lựa chọn tạo báo cáo đúng khoảng, kèm customer-vee.csv khi
+tra cứu khách hàng. Bộ chọn Nhóm được ẩn; đường đóng góp và nhãn nhóm vẫn còn,
+nút Đặt tên nhóm… mở danh sách nhóm khi chọn một ngành và một loại ngày.
 """

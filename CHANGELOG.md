@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Trục Y tự co giãn theo đường đang hiện; chọn riêng từng đường, hiện/ẩn tất cả; xuất hình giữ lựa chọn đường, bảng dữ liệu vẫn đầy đủ.
+- Xem/xuất từ ngày đến ngày xuyên tháng, giữ hệ số riêng ngành-tháng; chuẩn hóa toàn khoảng, ngày và phạm vi thành viên đúng từng tháng.
+- Nhập danh mục ngành/thành phần từ CSV/XLSX có mẫu/xem trước, lưu phiên bản/checksum tại dự án và đóng băng trong báo cáo.
+- Tìm và xem khách hàng mẫu trước/sau VEE theo ngày hoặc khoảng ngày, gồm khách hàng bị loại khỏi cohort; không áp trọng số/suy rộng. Ẩn bộ chọn Nhóm và bộ lọc không áp dụng; sửa nền ô ngày trên macOS.
+
 - Tổng hợp nhiều ngành và loại ngày theo lịch, thành phần phụ tải có tên, kiểm tra đủ phạm vi toàn đơn vị; đường tổng và các đường so sánh dùng chung số liệu với bảng và báo cáo.
 - Biểu đồ từng ngày có mẫu nguồn/sau VEE và hai phương pháp suy rộng: lặp ngày đại diện hoặc giữ biến thiên với hệ số tháng riêng. Lưu tổng mẫu ngày kèm checksum, dựng lại lần chạy cũ từ cache đã xác minh.
 - Báo cáo GUI bằng tiếng Việt, lựa chọn 24/48 chu kỳ, kW/kWh/chuẩn hóa; biểu đồ phản hồi khi bấm và co giãn theo cửa sổ. Tài liệu tính toán đầy đủ tại `docs/results-calculations.md` và nút “Cách tính…”.
