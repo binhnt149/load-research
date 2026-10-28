@@ -31,8 +31,11 @@ class StudyRequest:
     billing_sheet: str | None = None
     table_delimiter: str = ","
     selected_industries: tuple[str, ...] = ()
+    meter_key_policy: str = "trimmed"
 
     def __post_init__(self) -> None:
+        if self.meter_key_policy not in ("legacy", "trimmed"):
+            raise ValueError("invalid meter key policy")
         if not self.cmis_paths or not self.mdms_sources:
             raise ValueError("CMIS and MDMS sources are required")
         if any(
@@ -73,15 +76,20 @@ class StudyRequest:
             "billing_sheet": self.billing_sheet,
             "table_delimiter": self.table_delimiter,
             "selected_industries": list(self.selected_industries),
+            "meter_key_policy": self.meter_key_policy,
         }
 
     @classmethod
     def from_dict(cls, payload: dict) -> "StudyRequest":
         copied = dict(payload)
+        copied.setdefault("meter_key_policy", "legacy")
         copied["config"] = RunConfig.from_dict(copied["config"])
         copied["calendar"] = ResearchCalendar.from_dict(copied.get("calendar", {}))
         copied["mdms_sources"] = tuple(
-            SourceInput(source["path"], SourceOptions(**source["options"]))
+            SourceInput(
+                source["path"],
+                SourceOptions(**{"timestamp_alignment": "strict", **source["options"]}),
+            )
             for source in copied["mdms_sources"]
         )
         for name in (

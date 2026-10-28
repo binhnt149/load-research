@@ -37,6 +37,7 @@ class RunConfig:
     mad_min_days: int = 3
     max_estimated_fraction: float = 0.1
     min_original_coverage: float = 0.8
+    vee_completion: str = "complete"
     min_days: tuple[int, ...] = (5, 2, 2, 1)
     min_customers: int = 10
     min_cluster_customers: int = 30
@@ -76,6 +77,8 @@ class RunConfig:
             raise ValueError("analysis interval must be 30 or 60 minutes")
         if self.algorithm not in ("kmeans", "dbscan"):
             raise ValueError("unknown clustering algorithm")
+        if self.vee_completion not in ("legacy", "complete"):
+            raise ValueError("invalid VEE completion policy")
         integer_fields = (
             "min_donors",
             "min_customers",
@@ -146,7 +149,7 @@ class RunConfig:
 
     @classmethod
     def from_dict(cls, payload: dict) -> "RunConfig":
-        return cls(**payload)
+        return cls(**{"vee_completion": "legacy", **payload})
 
     @property
     def content_hash(self) -> str:
@@ -162,6 +165,7 @@ class SourceOptions:
     measurement_kind: str = "interval_energy"
     timestamp_convention: str = "start"
     timestamp_format: str | None = None
+    timestamp_alignment: str = "floor"
     timezone: str = "Asia/Ho_Chi_Minh"
     layout: str = "long"
     channel: str = "import_active"
@@ -187,6 +191,8 @@ class SourceOptions:
             "wide",
         ):
             raise ValueError("invalid source convention/layout")
+        if self.timestamp_alignment not in ("strict", "floor"):
+            raise ValueError("invalid timestamp alignment")
         if self.channel != "import_active":
             raise ValueError("only declared active import channel is supported")
         if len(self.delimiter) != 1 or self.decimal not in (".", ","):

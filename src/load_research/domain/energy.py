@@ -95,8 +95,28 @@ def interval_start(
     convention: str = "start",
     timezone: str = "Asia/Ho_Chi_Minh",
     timestamp_format: str | None = None,
+    *,
+    alignment: str = "strict",
 ) -> datetime:
-    if minutes not in (15, 30, 60) or convention not in ("start", "end"):
+    return interval_times(
+        timestamp, minutes, convention, timezone, timestamp_format, alignment=alignment
+    )[0]
+
+
+def interval_times(
+    timestamp: str | datetime,
+    minutes: int,
+    convention: str = "start",
+    timezone: str = "Asia/Ho_Chi_Minh",
+    timestamp_format: str | None = None,
+    *,
+    alignment: str = "strict",
+) -> tuple[datetime, datetime, datetime]:
+    if (
+        minutes not in (15, 30, 60)
+        or convention not in ("start", "end")
+        or alignment not in ("strict", "floor")
+    ):
         raise ValueError("invalid interval convention")
     if isinstance(timestamp, datetime):
         parsed = timestamp
@@ -112,9 +132,17 @@ def interval_start(
         if parsed.tzinfo is None
         else parsed.astimezone(zone)
     )
-    if parsed.second or parsed.microsecond or parsed.minute % minutes:
+    original = parsed
+    if alignment == "strict" and (
+        parsed.second or parsed.microsecond or parsed.minute % minutes
+    ):
         raise ValueError("timestamp must be aligned to interval boundaries")
-    return parsed - timedelta(minutes=minutes) if convention == "end" else parsed
+    if alignment == "floor":
+        parsed = parsed.replace(
+            minute=parsed.minute // minutes * minutes, second=0, microsecond=0
+        )
+    start = parsed - timedelta(minutes=minutes) if convention == "end" else parsed
+    return start, original, parsed
 
 
 def convert_curve(

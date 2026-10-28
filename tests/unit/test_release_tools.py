@@ -32,6 +32,11 @@ def test_release_version_agrees_with_both_metadata_sources_and_tag(tmp_path):
     assert release.release_version(root) == "0.1.0"
 
 
+def test_release_candidate_version_agrees_with_metadata_and_tag(tmp_path):
+    root = metadata(tmp_path, package_version="0.1.4rc1", project_version="0.1.4rc1")
+    assert release.release_version(root, "v0.1.4rc1") == "0.1.4rc1"
+
+
 @pytest.mark.parametrize("tag", ["v0.1.1", "0.1.0", "v0.1.0;echo BAD", "v../x"])
 def test_release_refuses_mismatched_or_unsafe_tags(tmp_path, tag):
     with pytest.raises(ValueError):

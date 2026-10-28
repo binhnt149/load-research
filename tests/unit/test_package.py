@@ -1,5 +1,5 @@
 def test_package_identifies_reproducible_method_version():
     from load_research import METHOD_VERSION, __version__
 
-    assert __version__ == "0.1.3"
-    assert METHOD_VERSION == "class-profile-v1"
+    assert __version__ == "0.1.4rc1"
+    assert METHOD_VERSION == "class-profile-v2"

@@ -17,8 +17,10 @@ from pathlib import Path
 def release_version(root: Path, tag: str | None = None) -> str:
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     version = project["project"]["version"]
-    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
-        raise ValueError("Release version must have the form X.Y.Z")
+    if not isinstance(version, str) or not re.fullmatch(
+        r"\d+\.\d+\.\d+(?:rc[1-9]\d*)?", version
+    ):
+        raise ValueError("Release version must have the form X.Y.Z or X.Y.ZrcN")
     module = ast.parse(
         (root / "src/load_research/__init__.py").read_text(encoding="utf-8")
     )

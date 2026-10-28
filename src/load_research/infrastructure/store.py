@@ -62,6 +62,14 @@ class IntervalStore:
                 repair_blocked BOOLEAN
             )
         """)
+            self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS timestamp_adjustments (
+                source_id VARCHAR, source_row BIGINT, customer_id VARCHAR,
+                meter_id VARCHAR, original_timestamp VARCHAR,
+                aligned_timestamp TIMESTAMP, offset_seconds DOUBLE,
+                original_interval_start VARCHAR, original_interval_end VARCHAR
+            )
+        """)
         self._validated = False
 
     def __enter__(self) -> "IntervalStore":
@@ -80,7 +88,16 @@ class IntervalStore:
     def append(self, records: Iterable[MeterRecord], batch_size: int = 20000) -> None:
         if not 1 <= batch_size <= 1_000_000:
             raise ValueError("invalid batch size")
-        names = [field.name for field in fields(MeterRecord)]
+        audit_names = (
+            "original_timestamp",
+            "aligned_timestamp",
+            "offset_seconds",
+            "original_interval_start",
+            "original_interval_end",
+        )
+        names = [
+            field.name for field in fields(MeterRecord) if field.name not in audit_names
+        ]
         source = iter(records)
         self._validated = False
         while batch := list(itertools.islice(source, batch_size)):
@@ -94,6 +111,65 @@ class IntervalStore:
                 )
             finally:
                 self.connection.unregister("incoming_batch")
+            adjusted = [
+                record for record in batch if record.original_timestamp is not None
+            ]
+            if adjusted:
+                audit_columns = (
+                    "source_id",
+                    "source_row",
+                    "customer_id",
+                    "meter_id",
+                    *audit_names,
+                )
+                audit_table = pa.table(
+                    {
+                        name: [getattr(record, name) for record in adjusted]
+                        for name in audit_columns
+                    }
+                )
+                self.connection.register("timestamp_batch", audit_table)
+                try:
+                    self.connection.execute(
+                        "INSERT INTO timestamp_adjustments SELECT * FROM timestamp_batch"
+                    )
+                finally:
+                    self.connection.unregister("timestamp_batch")
+
+    def iter_timestamp_adjustments(self) -> Iterator[dict]:
+        exists = self.connection.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'timestamp_adjustments'"
+        ).fetchone()
+        if not exists or not exists[0]:
+            return
+        cursor = self.connection.execute(
+            "SELECT source_id, source_row, customer_id, meter_id, original_timestamp, aligned_timestamp, offset_seconds, original_interval_start, original_interval_end FROM timestamp_adjustments"
+        )
+        names = (
+            "source_id",
+            "source_row",
+            "customer_id",
+            "meter_id",
+            "original_timestamp",
+            "aligned_timestamp",
+            "offset_seconds",
+            "original_interval_start",
+            "original_interval_end",
+        )
+        while batch := cursor.fetchmany(20000):
+            for row in batch:
+                item = dict(zip(names, row, strict=True))
+                item["aligned_timestamp"] = item["aligned_timestamp"].isoformat()
+                yield item
+
+    @property
+    def timestamp_adjustment_count(self) -> int:
+        row = self.connection.execute(
+            "SELECT COUNT(*) FROM timestamp_adjustments"
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("Không thể đếm nhật ký hiệu chỉnh thời điểm")
+        return int(row[0])
 
     def validate(self) -> None:
         conflict = self.connection.execute("""

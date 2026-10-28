@@ -5,6 +5,33 @@ import pytest
 from load_research.domain.config import RunConfig, SourceOptions
 
 
+def test_new_source_floors_timestamps_but_old_saved_request_keeps_strict_alignment():
+    from load_research.application.models import SourceInput, StudyRequest
+
+    source = SourceOptions(values_already_scaled=True)
+    assert source.timestamp_alignment == "floor"
+    request = StudyRequest(
+        RunConfig(periods=("2026-01",), scope="NPC"),
+        ("cmis.csv",),
+        (SourceInput("mdms.csv", source),),
+    )
+    assert (
+        StudyRequest.from_dict(request.to_dict())
+        .mdms_sources[0]
+        .options.timestamp_alignment
+        == "floor"
+    )
+    old = request.to_dict()
+    del old["mdms_sources"][0]["options"]["timestamp_alignment"]
+    del old["meter_key_policy"]
+    assert (
+        StudyRequest.from_dict(old).mdms_sources[0].options.timestamp_alignment
+        == "strict"
+    )
+    assert StudyRequest.from_dict(old).meter_key_policy == "legacy"
+    assert StudyRequest.from_dict(request.to_dict()).meter_key_policy == "trimmed"
+
+
 def test_run_config_roundtrip_and_hash_are_stable():
     config = RunConfig(periods=("2024-02",), scope="NPC")
     assert RunConfig.from_dict(config.to_dict()) == config

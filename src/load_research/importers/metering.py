@@ -5,8 +5,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from load_research.domain.config import SourceOptions
-from load_research.domain.energy import energy_from_value, interval_start
-from load_research.importers.catalog import Catalog, number, required_text
+from load_research.domain.energy import (
+    energy_from_value,
+    interval_times,
+)
+from load_research.importers.catalog import Catalog, meter_key, number, required_text
 
 
 @dataclass(frozen=True)
@@ -22,6 +25,11 @@ class MeterRecord:
     source_id: str
     source_row: int
     repair_blocked: bool = False
+    original_timestamp: str | None = None
+    aligned_timestamp: datetime | None = None
+    offset_seconds: float | None = None
+    original_interval_start: str | None = None
+    original_interval_end: str | None = None
 
 
 def _measurements(
@@ -60,6 +68,7 @@ def canonicalize(
     *,
     source_id: str = "source",
     issues: list[dict] | None = None,
+    meter_key_policy: str = "trimmed",
 ) -> Iterator[MeterRecord]:
     for index, row in enumerate(rows, start=2):
         row_number = int(row.get("_source_row", index))
@@ -96,9 +105,7 @@ def canonicalize(
                 raise ValueError(
                     "MDMS measurement kind differs from source declaration"
                 )
-            meter_id = str(
-                row.get("meter_id") or row.get("measurement_point_id") or ""
-            ).strip()
+            meter_id = meter_key(row, meter_key_policy)
             if not meter_id:
                 raise ValueError("missing meter mapping key")
             quality = str(row.get("source_quality_flag", "unknown")).lower().strip()
@@ -113,27 +120,34 @@ def canonicalize(
             records = []  # a wide row is committed atomically; at most 96 intervals
             for timestamp, raw, slot in _measurements(row, options):
                 context["source_slot"] = slot or None
-                start = interval_start(
+                start, original, aligned = interval_times(
                     timestamp,
                     options.interval_minutes,
                     options.timestamp_convention,
                     options.timezone,
                     options.timestamp_format,
-                ).replace(tzinfo=None)
+                    alignment=options.timestamp_alignment,
+                )
+                start = start.replace(tzinfo=None)
+                boundary_changed = False
                 if options.layout == "long":
                     for field, convention in (
                         ("interval_start", "start"),
                         ("interval_end", "end"),
                     ):
                         if row.get(field):
-                            declared = interval_start(
-                                row[field],
-                                options.interval_minutes,
-                                convention,
-                                options.timezone,
-                                options.timestamp_format,
-                            ).replace(tzinfo=None)
-                            if declared != start:
+                            declared, boundary_original, boundary_aligned = (
+                                interval_times(
+                                    row[field],
+                                    options.interval_minutes,
+                                    convention,
+                                    options.timezone,
+                                    options.timestamp_format,
+                                    alignment=options.timestamp_alignment,
+                                )
+                            )
+                            boundary_changed |= boundary_original != boundary_aligned
+                            if declared.replace(tzinfo=None) != start:
                                 raise ValueError(
                                     "MDMS interval boundaries contradict declared duration/timestamp"
                                 )
@@ -156,6 +170,7 @@ def canonicalize(
                         options.multiplier,
                     )
                 )
+                changed = original != aligned or boundary_changed
                 records.append(
                     MeterRecord(
                         customer.customer_id,
@@ -169,6 +184,15 @@ def canonicalize(
                         source_id,
                         row_number,
                         interruption,
+                        str(timestamp) if changed else None,
+                        aligned.replace(tzinfo=None) if changed else None,
+                        (original - aligned).total_seconds() if changed else None,
+                        str(row["interval_start"])
+                        if changed and row.get("interval_start")
+                        else None,
+                        str(row["interval_end"])
+                        if changed and row.get("interval_end")
+                        else None,
                     )
                 )
             yield from records

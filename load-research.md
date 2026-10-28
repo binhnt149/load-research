@@ -899,3 +899,18 @@ Phạm vi mở rộng: ẩn cửa sổ dòng lệnh khi mở desktop Windows; Vi
   công tơ là thiếu, không phải 0; VEE tra cứu không thay đổi tập mẫu hoặc kết quả run.
 - Xử lý dữ liệu ngày/khách hàng và nhập danh mục trong worker có hủy. Câu trả lời
   worker phải khớp run, token và toàn bộ phạm vi đang chọn để không hiện dữ liệu cũ.
+
+## Bổ sung 28/10/2026 — thời điểm MDMS và VEE hoàn chỉnh
+
+- Nguồn mới mặc định làm tròn thời điểm xuống đầu khoảng chu kỳ nguồn trước đó
+  trong múi giờ khai báo, kể cả khi lệch gần hết chu kỳ; có lựa chọn kiểm tra
+  nghiêm ngặt. Hiệu chỉnh trước khi áp quy ước thời điểm đầu/cuối. Xung đột sau
+  ghép bị từ chối; giữ nhật ký nguồn và cho phép xuất toàn bộ trong kỳ nghiên cứu.
+- VEE hoàn chỉnh chỉ dùng căn cứ cùng khách hàng, tháng và loại ngày, dựa trên
+  quan sát gốc đủ số ngày cho; ghi phương pháp, ngày cho và hệ số. Điểm chặn bù,
+  thiếu căn cứ hoặc hệ số ngoài giới hạn không được tự tạo. Khách hàng-tháng còn
+  chu kỳ thiếu bị loại khỏi tập mẫu và báo lý do; ngưỡng độ phủ và tỷ lệ ước tính
+  vẫn áp dụng. 100% đầy đủ không có nghĩa 100% là số đo thực.
+- Lần nghiên cứu mới ghi phiên bản phương pháp `class-profile-v2` và tham số;
+  cấu hình cũ thiếu các trường mới giữ quy tắc kiểm tra thời điểm, ghép mã và VEE
+  cũ khi nạp/chạy lại. Snapshot kết quả đã lưu không bị sửa.

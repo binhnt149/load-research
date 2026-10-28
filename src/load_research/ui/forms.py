@@ -215,7 +215,16 @@ class ExportDialog(QDialog):
         ]
         self.xlsx.setChecked(True)
         self.png.setChecked(True)
-        for checkbox in (self.xlsx, self.png, self.svg, self.members):
+        self.timestamp_adjustments = QCheckBox(
+            "Kèm nhật ký hiệu chỉnh thời điểm trong kỳ nghiên cứu (có thể lớn)"
+        )
+        for checkbox in (
+            self.xlsx,
+            self.png,
+            self.svg,
+            self.members,
+            self.timestamp_adjustments,
+        ):
             layout.addRow(checkbox)
         layout.addRow(
             QLabel(
@@ -239,6 +248,7 @@ class ExportDialog(QDialog):
                 if checkbox.isChecked()
             ),
             "include_members": self.members.isChecked(),
+            "include_timestamp_adjustments": self.timestamp_adjustments.isChecked(),
         }
 
 
@@ -371,6 +381,12 @@ class SourceDialog(QDialog):
             [(unit, unit) for unit in ("Wh", "kWh", "MWh", "W", "kW", "MW")]
         )
         self.stamp = combo([("Đầu chu kỳ", "start"), ("Cuối chu kỳ", "end")])
+        self.alignment = combo(
+            [
+                ("Về đầu khoảng theo chu kỳ nguồn", "floor"),
+                ("Từ chối thời điểm lệch biên", "strict"),
+            ]
+        )
         self.layout_type = combo(
             [
                 ("Dạng dài: thời điểm / giá trị", "long"),
@@ -395,6 +411,7 @@ class SourceDialog(QDialog):
             (self.kind, options.measurement_kind),
             (self.unit, options.unit),
             (self.stamp, options.timestamp_convention),
+            (self.alignment, options.timestamp_alignment),
             (self.layout_type, options.layout),
             (self.decimal, options.decimal),
         ):
@@ -406,6 +423,7 @@ class SourceDialog(QDialog):
             ("Đại lượng", self.kind),
             ("Đơn vị nguồn", self.unit),
             ("Dấu thời gian", self.stamp),
+            ("Hiệu chỉnh thời điểm", self.alignment),
             ("Cấu trúc", self.layout_type),
             ("Hệ số", self.multiplier),
             ("Sheet Excel (trống: đầu tiên)", self.sheet),
@@ -458,6 +476,7 @@ class SourceDialog(QDialog):
             measurement_kind=self.kind.currentData(),
             unit=self.unit.currentData(),
             timestamp_convention=self.stamp.currentData(),
+            timestamp_alignment=self.alignment.currentData(),
             layout=self.layout_type.currentData(),
             mapping=self.mapping,
             sheet=self.sheet.text() or None,
@@ -489,12 +508,19 @@ class ConfigForm(QWidget):
             [("48 chu kỳ / 30 phút", 30), ("24 chu kỳ / 60 phút", 60)]
         )
         self.algorithm = combo([("K-Means", "kmeans"), ("DBSCAN", "dbscan")])
+        self.vee_completion = combo(
+            [
+                ("Bù đủ khi có căn cứ; loại mẫu còn thiếu", "complete"),
+                ("Quy tắc cũ: bù có giới hạn", "legacy"),
+            ]
+        )
         for label, widget in (
             ("Phạm vi đơn vị", self.scope),
             ("Năm-tháng (cách nhau bằng dấu phẩy)", self.periods),
             ("Múi giờ", self.timezone),
             ("Độ phân giải phân tích", self.resolution),
             ("Thuật toán", self.algorithm),
+            ("Hoàn chỉnh dữ liệu VEE", self.vee_completion),
         ):
             layout.addRow(label, widget)
         integer_labels = {
@@ -587,6 +613,7 @@ class ConfigForm(QWidget):
         self.timezone.setText(config.timezone)
         choose(self.resolution, config.interval_minutes)
         choose(self.algorithm, config.algorithm)
+        choose(self.vee_completion, config.vee_completion)
         for name, widget in self.numeric_controls().items():
             widget.setValue(getattr(config, name))
         self.manual_k.setValue(config.manual_k or 0)
@@ -605,6 +632,7 @@ class ConfigForm(QWidget):
             timezone=self.timezone.text().strip(),
             interval_minutes=self.resolution.currentData(),
             algorithm=self.algorithm.currentData(),
+            vee_completion=self.vee_completion.currentData(),
             manual_k=self.manual_k.value() or None,
             eps=float(self.eps.text()) if self.eps.text().strip() else None,
             seed=int(self.seed.text()),
@@ -696,6 +724,13 @@ class ResearchForm(QWidget):
         options.addRow("Sheet CMIS (trống: đầu tiên)", self.cmis_sheet)
         options.addRow("Trang tính thương phẩm", self.billing_sheet)
         options.addRow("Dấu phân cách CMIS/thương phẩm/lịch", self.table_delimiter)
+        self.meter_key_policy = combo(
+            [
+                ("Bỏ khoảng trắng, ưu tiên mã công tơ", "trimmed"),
+                ("Quy tắc ghép cũ", "legacy"),
+            ]
+        )
+        options.addRow("Quy tắc ghép mã công tơ/điểm đo", self.meter_key_policy)
         advanced_layout.addLayout(options)
         mapping_buttons = QHBoxLayout()
         for selector, fields, name, label in (
@@ -726,6 +761,7 @@ class ResearchForm(QWidget):
         self.config_form = ConfigForm()
 
     def set_request(self, request: StudyRequest) -> None:
+        choose(self.meter_key_policy, request.meter_key_policy)
         self.config_form.set_config(request.config)
         self.cmis.set_paths(request.cmis_paths)
         self.mdms.set_paths(source.path for source in request.mdms_sources)
@@ -768,6 +804,7 @@ class ResearchForm(QWidget):
             self.billing_sheet.text() or None,
             self.table_delimiter.text(),
             self.selected_industries,
+            self.meter_key_policy.currentData(),
         )
 
     def edit_source(self) -> None:

@@ -188,3 +188,16 @@ def import_issue_rows(result: dict) -> list[dict]:
         }
         for issue in result.get("import", {}).get("issues_preview", [])
     ]
+
+
+def timestamp_adjustment_rows(result: dict) -> list[dict]:
+    sources = {source["sha256"]: source["path"] for source in result.get("sources", [])}
+    return [
+        {
+            "source_name": str(sources.get(row.get("source_id"), "Nguồn MDMS"))
+            .replace("\\", "/")
+            .rsplit("/", 1)[-1],
+            **row,
+        }
+        for row in result.get("import", {}).get("timestamp_adjustments_preview", [])
+    ]

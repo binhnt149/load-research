@@ -150,6 +150,74 @@ def statistical_warnings(
     return result
 
 
+def complete_from_same_type(
+    day, index, original, estimated, blocked, dates, kinds, config
+) -> None:
+    """Fill remaining slots from original observations of this customer's like days."""
+    if np.isfinite(day.values).all():
+        return
+    missing = np.zeros(len(day.values), dtype=bool)
+    for start, end in gaps(day.values):
+        if not blocked[index, max(0, start - 1) : min(len(day.values), end + 1)].any():
+            missing[start:end] = True
+    if not missing.any():
+        return
+    donors = [
+        candidate
+        for candidate in range(len(dates))
+        if candidate != index
+        and kinds[candidate] == kinds[index]
+        and not blocked[candidate].any()
+    ]
+    if len(donors) < config.min_donors:
+        return
+    observations = original[donors]
+    available = np.isfinite(observations) & ~estimated[donors]
+    supported = available.sum(axis=0) >= config.min_donors
+    targets = np.flatnonzero(missing & supported)
+    if not len(targets):
+        return
+    typical = np.full(original.shape[1], np.nan)
+    columns = np.flatnonzero(supported)
+    typical[columns] = np.nanmedian(
+        np.where(available[:, columns], observations[:, columns], np.nan), axis=0
+    )
+    common = (
+        np.isfinite(original[index])
+        & ~estimated[index]
+        & ~blocked[index]
+        & np.isfinite(typical)
+    )
+    scale = 1.0
+    method = "same_type_unscaled"
+    if common.sum() >= len(day.values) * config.donor_common_fraction:
+        denominator = float(typical[common].sum())
+        target = float(original[index, common].sum())
+        if denominator > 0:
+            scale = target / denominator
+            if not config.donor_scale_min <= scale <= config.donor_scale_max:
+                return
+            method = "same_type_scaled"
+        elif target > 0:
+            return
+    for slot in targets:
+        day.values[slot] = float(typical[slot] * scale)
+        day.estimated[slot] = True
+        day.adjustments.append(
+            {
+                "slot_index": int(slot) + 1,
+                "old": None,
+                "new": float(day.values[slot]),
+                "method": method,
+                "scale_factor": scale,
+                "donor_dates": [
+                    dates[donors[i]].isoformat()
+                    for i in np.flatnonzero(available[:, slot])
+                ],
+            }
+        )
+
+
 def repair_month(
     grid: MonthGrid, calendar: ResearchCalendar, config: RunConfig
 ) -> MonthQuality:
@@ -221,6 +289,10 @@ def repair_month(
                         "donor_dates": [dates[source].isoformat() for source in donors],
                     }
                 )
+        if config.vee_completion == "complete":
+            complete_from_same_type(
+                day, index, original, grid.estimated, blocked, dates, kinds, config
+            )
         day.eligible = day_eligible(day.values, day.estimated, config)
     adjustments = [
         {

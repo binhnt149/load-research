@@ -28,6 +28,10 @@ M000001,2024-02-01T00:00:00,2,actual,kWh,import,30
 
 Khai báo cho từng nguồn: `values_already_scaled` bắt buộc true/false, `multiplier`, native `interval_minutes=15/30/60`, `measurement_kind=interval_energy` hoặc `interval_average_power`, đơn vị Wh/kWh/MWh hoặc W/kW/MW tương ứng, `timestamp_convention=start/end`, múi giờ, dạng dài/rộng, sheet/ánh xạ và format.
 
+Nguồn mới mặc định **hiệu chỉnh về đầu khoảng trước đó** theo chu kỳ nguồn và múi giờ đã khai báo: với chu kỳ 30 phút, 10:32:02 và 10:58 đều thành 10:30. Khi thời điểm đánh dấu cuối chu kỳ, ứng dụng hiệu chỉnh mốc trước rồi trừ một chu kỳ để xác định thời điểm bắt đầu. Có thể chọn chế độ từ chối timestamp lệch trong thiết lập nguồn; cấu hình đã lưu từ phiên bản cũ giữ chế độ từ chối. Hiệu chỉnh không làm thay đổi giá trị điện năng. Các bản ghi rơi vào cùng chu kỳ được kiểm tra trùng/xung đột như bên dưới; không lấy tuỳ ý số liệu cuối.
+
+Tại **3 · Kết quả**, bảng **Điều chỉnh thời điểm** hiển thị số bản ghi đã hiệu chỉnh trong kỳ nghiên cứu và tối đa 1.000 dòng mẫu. Tùy chọn xuất nhật ký trong cửa sổ xuất tạo `timestamp-adjustments.csv` đầy đủ cho kỳ nghiên cứu, gồm tên và SHA-256 nguồn, dòng nguồn, thời điểm gốc, thời điểm đã hiệu chỉnh, độ lệch giây và cột đầu/cuối chu kỳ gốc khi có; tệp có thể lớn. Độ lệch giây là độ lệch của thời điểm chính, có thể bằng 0 khi chỉ cột ranh giới phụ bị hiệu chỉnh.
+
 Chỉ nhận điện năng tác dụng chiều nhận. Không hỗ trợ trực tiếp chỉ số luỹ kế hoặc công suất tức thời; phải có quy trình chuyển đổi được xác nhận trước. Trường `channel`, `direction`, `unit`, `measurement_kind`, `interval_minutes`, `interval_start/end` có mặt phải khớp khai báo, không bỏ qua mâu thuẫn.
 
 `source_quality_flag`: actual/measured/valid/a là biết đo gốc; estimated/substituted/e/s tính vào ngân sách ước lượng; invalid/missing là thiếu; không có hoặc mã khác báo chất lượng nguồn chưa biết. Ánh xạ mã riêng của đơn vị trước khi dùng. `outage/shutdown/do_not_estimate` hoặc cột `repair_blocked=true` chặn bù; giá trị 0 có đo vẫn được giữ, thiếu phải để trống. Cờ này lan từ 15→30/60 phút và giữa công tơ cộng gộp.

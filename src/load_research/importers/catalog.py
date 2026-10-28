@@ -161,7 +161,25 @@ class Catalog:
         return eligible, excluded
 
 
-def load_catalog(rows: Iterable[dict], scope: str, *, decimal: str = ".") -> Catalog:
+def meter_key(row: dict, policy: str = "trimmed") -> str:
+    """Prefer a nonblank meter identifier, otherwise use the measurement point."""
+    if policy == "legacy":
+        return str(row.get("meter_id") or row.get("measurement_point_id") or "").strip()
+    if policy != "trimmed":
+        raise ValueError("invalid meter key policy")
+    return (
+        str(row.get("meter_id") or "").strip()
+        or str(row.get("measurement_point_id") or "").strip()
+    )
+
+
+def load_catalog(
+    rows: Iterable[dict],
+    scope: str,
+    *,
+    decimal: str = ".",
+    meter_key_policy: str = "trimmed",
+) -> Catalog:
     links, seen = [], set()
     sample_billing: dict[tuple[str, str], SampleBilling] = {}
     industry_names: dict[str, str] = {}
@@ -182,9 +200,7 @@ def load_catalog(rows: Iterable[dict], scope: str, *, decimal: str = ".") -> Cat
                 if industry_names.get(customer.industry_code, name) != name:
                     raise ValueError("conflicting industry names")
                 industry_names[customer.industry_code] = name
-            meter_id = str(
-                row.get("meter_id") or row.get("measurement_point_id") or ""
-            ).strip()
+            meter_id = meter_key(row, meter_key_policy)
             if not meter_id:
                 raise ValueError(
                     "meter mapping requires meter_id or measurement_point_id"

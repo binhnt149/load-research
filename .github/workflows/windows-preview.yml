@@ -1,0 +1,80 @@
+name: Windows preview release
+
+on:
+  push:
+    branches: ['windows-preview/**']
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUTF8: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  windows-preview:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.lock
+            packaging/requirements-build.txt
+      - name: Read version and install locked dependencies
+        id: metadata
+        shell: bash
+        run: |
+          version="$(python packaging/release_tools.py version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          python -m pip install -r requirements.lock
+          python -m pip install -r packaging/requirements-build.txt
+          python -m pip install --no-deps --no-build-isolation .
+      - name: Restore compiler cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/nuitka-cache
+          key: nuitka-v1-windows-x64-${{ hashFiles('requirements.lock', 'packaging/requirements-build.txt') }}-${{ github.sha }}-${{ github.run_id }}
+          restore-keys: |
+            nuitka-v1-windows-x64-${{ hashFiles('requirements.lock', 'packaging/requirements-build.txt') }}-
+      - name: Compile standalone Windows application
+        working-directory: packaging
+        shell: bash
+        env:
+          NUITKA_CACHE_DIR: ${{ runner.temp }}/nuitka-cache
+        run: >-
+          pyside6-deploy -c pysidedeploy.spec --mode standalone --no-install
+          --extra-ignore-dirs=.git,.venv,tests,docs,research-projects,benchmark-data,build,dist
+      - name: Smoke test packaged executable
+        shell: bash
+        run: python packaging/release_tools.py smoke --bundle dist/native --report dist/release/native-smoke-windows-x64.json
+      - name: Create portable ZIP
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: Compress-Archive -Path dist/native/LoadResearch.dist -DestinationPath "dist/release/LoadResearch-$env:VERSION-windows-x64.zip"
+      - name: Publish Windows pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          cd dist/release
+          sha256sum "LoadResearch-$VERSION-windows-x64.zip" native-smoke-windows-x64.json > SHA256SUMS
+          cat > release-notes.md <<'NOTES'
+          Bản Windows x64 thử nghiệm: giải nén ZIP, chạy LoadResearch.dist/launcher.exe và giữ nguyên cả thư mục.
+
+          Bản này bổ sung hiệu chỉnh thời điểm MDMS và VEE hoàn chỉnh. Kết quả cũ giữ chính sách cũ; khách hàng-tháng không thể bù đủ được báo và loại khỏi tập mẫu theo chế độ mới.
+
+          Đã chạy 357 kiểm thử trên máy phát triển macOS và chạy smoke executable trên runner Windows. Để phát hành nhanh, lượt này không chạy lại full suite trên Windows/macOS, audit phụ thuộc, kiểm tra cửa sổ console Windows hoặc build macOS. Chưa nghiệm thu trên máy sạch, dữ liệu thực hoặc quy mô 7.000 khách hàng × 12 tháng. Windows chưa ký Authenticode.
+          NOTES
+          gh release create "v$VERSION" "LoadResearch-$VERSION-windows-x64.zip" native-smoke-windows-x64.json SHA256SUMS \
+            --target "$GITHUB_SHA" --prerelease --title "Load Research Desktop $VERSION — Windows thử nghiệm" \
+            --notes-file release-notes.md

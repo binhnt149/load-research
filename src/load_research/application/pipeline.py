@@ -98,7 +98,9 @@ def _catalog(request: StudyRequest) -> Catalog:
         )
         for path in request.cmis_paths
     )
-    return load_catalog(rows, request.config.scope)
+    return load_catalog(
+        rows, request.config.scope, meter_key_policy=request.meter_key_policy
+    )
 
 
 def _prepare_cache(
@@ -119,12 +121,13 @@ def _prepare_cache(
     ]
     key = content_hash(
         {
-            "schema": 3,
-            "canonicalizer": "active-import-v3",
+            "schema": 5,
+            "canonicalizer": "active-import-v5",
             "scope": request.config.scope,
             "periods": list(request.config.periods),
             "sources": manifest,
             "mapping": request.cmis_mapping,
+            "meter_key_policy": request.meter_key_policy,
             "sheet": request.cmis_sheet,
             "delimiter": request.table_delimiter,
             "mdms": [source.to_dict() for source in request.mdms_sources],
@@ -178,6 +181,7 @@ def _prepare_cache(
                     options,
                     source_id=source_ids[str(Path(source.path).resolve())],
                     issues=issues,
+                    meter_key_policy=request.meter_key_policy,
                 )
                 store.append(
                     record
@@ -194,6 +198,10 @@ def _prepare_cache(
             check()
             store.validate()
             row_count = store.raw_count
+            timestamp_adjustments = store.timestamp_adjustment_count
+            timestamp_adjustments_preview = list(
+                itertools.islice(store.iter_timestamp_adjustments(), 1000)
+            )
     finally:
         issues.close()
     check()
@@ -204,6 +212,8 @@ def _prepare_cache(
         "key": key,
         "database_hash": file_hash(database),
         "raw_intervals": row_count,
+        "timestamp_adjustments": timestamp_adjustments,
+        "timestamp_adjustments_preview": timestamp_adjustments_preview,
         "issues_count": issues.total,
         "issues_preview": list(issues),
         "issues_path": str(issues_path.relative_to(workspace.root)),
@@ -515,6 +525,7 @@ def run_study(
             warnings = imported["issues_count"] > 0 or any(
                 item.get("unknown_source_quality", 0) for item in quality
             )
+            warnings |= imported.get("timestamp_adjustments", 0) > 0
             warnings |= any(
                 cell["result"]["status"] == "valid_with_warnings" for cell in cells
             )

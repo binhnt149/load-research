@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.4rc1 — 2026-10-28 (Windows thử nghiệm)
+
+- MDMS mới mặc định đưa thời điểm lệch về đầu khoảng chu kỳ nguồn; cấu hình cho phép giữ kiểm tra nghiêm ngặt. Nhật ký hiệu chỉnh có thể xem và xuất, xung đột số đo sau ghép bị từ chối.
+- VEE hoàn chỉnh dùng quan sát gốc cùng khách hàng và loại ngày để ước lượng khi đủ căn cứ, ghi vết phương pháp và loại khách hàng-tháng còn thiếu; vẫn áp dụng ngưỡng chất lượng. Cấu hình cũ giữ quy tắc lịch sử; phương pháp mới là `class-profile-v2`.
+- Ghép mã điểm đo khi trường mã công tơ chỉ chứa khoảng trắng; cấu hình cũ giữ quy tắc ghép đã lưu.
+
 ## 0.1.3 — 2026-10-27
 
 Bản thử nghiệm nâng cấp tổng hợp và tra cứu Kết quả; giữ nguyên phương pháp `class-profile-v1` và snapshot nghiên cứu đã lưu.

@@ -28,7 +28,11 @@ from PySide6.QtWidgets import (
 
 from load_research.calendar import ResearchCalendar, month_days
 from load_research.components import apply_component_catalog
-from load_research.error_messages import format_error, import_issue_rows
+from load_research.error_messages import (
+    format_error,
+    import_issue_rows,
+    timestamp_adjustment_rows,
+)
 from load_research.exports import apply_annotations, cluster_display_name
 from load_research.presentation import DAY_TYPES, format_value
 from load_research.result_reporting import interval_records, render_view
@@ -214,6 +218,7 @@ class ResultsView(QWidget):
             RecordsModel(self),
         )
         self.customer_quality_model = RecordsModel(self)
+        self.timestamp_model = RecordsModel(self)
         for label, model in (
             ("Chu kỳ", self.table_model),
             ("Hệ số suy rộng", self.factors_model),
@@ -225,6 +230,7 @@ class ResultsView(QWidget):
             ("Thống kê nhóm", self.statistics_model),
             ("Đối soát CMIS toàn tháng", self.reconciliation_model),
             ("Chi tiết VEE khách hàng", self.customer_quality_model),
+            ("Điều chỉnh thời điểm MDMS", self.timestamp_model),
         ):
             view = QTableView()
             view.setModel(model)
@@ -320,6 +326,8 @@ class ResultsView(QWidget):
             self.fill(control, [])
         self.clear_current_view()
         self.import_model.set_records([])
+        self.timestamp_model.set_records([])
+        self.data_tabs.setTabText(10, "Điều chỉnh thời điểm MDMS")
         self.clear_chart_point()
         self.comparison_label.clear()
         self.comparison_label.hide()
@@ -344,6 +352,11 @@ class ResultsView(QWidget):
         self.comparison_label.clear()
         self.comparison_label.hide()
         self.import_model.set_records(import_issue_rows(result))
+        self.timestamp_model.set_records(timestamp_adjustment_rows(result))
+        count = result.get("import", {}).get("timestamp_adjustments", 0)
+        self.data_tabs.setTabText(
+            10, f"Điều chỉnh thời điểm ({count}; xem tối đa 1.000 dòng)"
+        )
         source_minutes = result["config"]["interval_minutes"]
         self.fill(
             self.resolution,

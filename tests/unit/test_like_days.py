@@ -37,10 +37,14 @@ def test_holiday_without_donors_and_entire_missing_day_remain_missing():
     values[1] = np.nan
     calendar = ResearchCalendar(holidays={month_days("2024-02")[0]})
     repaired = repair_month(
-        grid(values), calendar, RunConfig(periods=("2024-02",), scope="NPC")
+        grid(values),
+        calendar,
+        RunConfig(periods=("2024-02",), scope="NPC", vee_completion="legacy"),
     )
     assert not repaired.days[0].eligible
     assert not repaired.days[1].eligible
+    assert np.isnan(repaired.days[0].values[5:9]).all()
+    assert np.isnan(repaired.days[1].values).all()
 
 
 def test_repaired_values_cannot_be_used_as_new_donors():

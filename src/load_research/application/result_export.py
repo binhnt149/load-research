@@ -1,18 +1,21 @@
 """Prepare the same selected views used on screen, inside the export worker."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import replace
 from pathlib import Path
 
 from load_research.application.daily import load_daily
 from load_research.calendar import ResearchCalendar, month_days
+from load_research.domain.config import RunConfig
+from load_research.exports import source_basename
+from load_research.infrastructure.store import IntervalStore
 from load_research.result_reporting import export_views
 from load_research.result_view import (
     ResultSelection,
     build_daily_view,
     build_result_view,
 )
-from load_research.workspace import Workspace
+from load_research.workspace import Workspace, file_hash
 
 
 def export_selection(
@@ -46,8 +49,38 @@ def export_selection(
         chart_formats=options.get("chart_formats", ()),
         layout=options.get("layout", "wide"),
         include_members=options.get("include_members", False),
+        timestamp_adjustments=_timestamp_adjustments(workspace, result, check)
+        if options.get("include_timestamp_adjustments")
+        else None,
         check=check,
     )
+
+
+def _timestamp_adjustments(
+    workspace: Workspace, result: dict, check: Callable[[], None]
+) -> Iterator[dict]:
+    imported = result["import"]
+    database = workspace.safe_path(f"cache/{imported['key']}.duckdb")
+    check()
+    if not database.is_file() or file_hash(database) != imported["database_hash"]:
+        raise ValueError("canonical cache is missing or changed")
+    sources = {
+        source["sha256"]: source_basename(source["path"])
+        for source in result.get("sources", [])
+    }
+    config = RunConfig.from_dict(result["config"])
+    with IntervalStore(
+        database,
+        memory_limit_mb=config.memory_limit_mb,
+        threads=config.worker_threads,
+        read_only=True,
+    ) as store:
+        for row in store.iter_timestamp_adjustments():
+            check()
+            yield {
+                "source_name": sources.get(row["source_id"], "Nguồn MDMS"),
+                **row,
+            }
 
 
 def _prepare_views(workspace, result, selection, options, check):

@@ -5,6 +5,37 @@ import pytest
 from load_research.importers.catalog import load_billing, load_catalog
 
 
+def test_catalog_uses_measurement_point_when_meter_id_contains_only_whitespace():
+    catalog = load_catalog(
+        [
+            {
+                "customer_id": "0001",
+                "industry_code": "01",
+                "meter_id": "   ",
+                "measurement_point_id": "M01",
+            }
+        ],
+        "NPC",
+    )
+    assert catalog.links[0].meter_id == "M01"
+
+
+def test_old_catalog_policy_preserves_whitespace_key_rejection():
+    with pytest.raises(ValueError, match="meter mapping"):
+        load_catalog(
+            [
+                {
+                    "customer_id": "0001",
+                    "industry_code": "01",
+                    "meter_id": " ",
+                    "measurement_point_id": "M01",
+                }
+            ],
+            "NPC",
+            meter_key_policy="legacy",
+        )
+
+
 def test_customer_meter_mapping_preserves_ids_weights_and_effective_dates():
     catalog = load_catalog(
         [

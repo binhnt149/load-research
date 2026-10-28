@@ -1,6 +1,6 @@
 # Cách tính kết quả nghiên cứu phụ tải
 
-Phiên bản phương pháp hiển thị: 27/10/2026. Các đường suy rộng là mô hình ước tính,
+Phiên bản phương pháp hiển thị: 28/10/2026. Các đường suy rộng là mô hình ước tính,
 không phải phép đo thực tế của toàn bộ khách hàng. Dữ liệu và tham số của mỗi lần
 nghiên cứu được giữ nguyên; thay tham số phải tạo lần nghiên cứu mới.
 
@@ -26,9 +26,21 @@ trong tháng. Số ngày tối thiểu cho mỗi loại là min(ngưỡng đã �
 hàng và trọng số phải giống nhau giữa các loại ngày của cùng ngành-tháng.
 
 Ngày hợp lệ khi tất cả chu kỳ sau xử lý đều hữu hạn và tỷ lệ chu kỳ ước tính
-không vượt ngưỡng. VEE chỉ nội suy khoảng ngắn nằm giữa quan sát có thể dùng;
-khoảng dài hơn được xem xét bằng ngày tương đồng với số ngày cho, độ phủ chung
-và giới hạn hệ số đã lưu. Không bù cả ngày bị mất. Các ô thiếu vẫn là ô thiếu.
+không vượt ngưỡng. VEE trước hết nội suy khoảng ngắn và xét ngày tương đồng theo
+tham số đã lưu. Với chế độ hoàn chỉnh mới, các chu kỳ còn thiếu, kể cả cả ngày,
+có thể bù từ trung vị các quan sát gốc cùng khách hàng, cùng tháng và cùng loại
+ngày, với ít nhất số ngày cho đã đặt. Số đo nguồn đã ước tính hoặc ngày cho có
+điểm bị chặn bù không được dùng làm căn cứ. Nếu đủ tỷ lệ chu kỳ gốc chồng lấn,
+hệ số = tổng quan sát gốc / tổng trung vị tại các chu kỳ chồng lấn, chỉ áp dụng
+khi nằm trong giới hạn đã đặt; nếu không đủ chồng lấn, dùng trung vị không điều
+chỉnh. Nhật ký ghi phương pháp, hệ số và các ngày cho của từng chu kỳ.
+Không bù điểm bị chặn hoặc khoảng thiếu liền kề điểm bị chặn. Thiếu căn cứ hay
+hệ số ngoài giới hạn thì giữ thiếu và loại khách hàng-tháng khỏi tập mẫu tính toán,
+ghi lý do. Các ngưỡng độ phủ nguồn và số ngày hợp lệ vẫn được áp dụng. Hoàn chỉnh
+100% nghĩa là không còn ô thiếu trong khách hàng-tháng được chọn, không có nghĩa
+100% là số đo thực. Ngày đủ số liệu vẫn có thể không đạt ngưỡng tỷ lệ ước tính.
+Chế độ VEE cũ giữ quy tắc không bù cả ngày và cho phép mẫu còn thiếu; snapshot
+nghiên cứu cũ giữ chế độ đó khi mở hoặc chạy lại.
 Chất lượng nguồn không biết được giữ thành cảnh báo, không tự coi là nguồn tốt.
 MDMS có thể đã chứa số liệu ước tính; “mẫu nguồn trước VEE” không đồng nghĩa với
 mọi chu kỳ đều là số đo thực. Nhật ký ghi từng giá trị bù và ngày cho.
@@ -115,7 +127,7 @@ Phương pháp 2 — Giữ biến thiên ngày: D[g,m]=ΣdΣk Q[g,d,k], β[g,m]=
 Evar[g,d,k]=β[g,m]×Q[g,d,k]. Chỉ tính β khi mọi ngày trong tháng của toàn bộ tập
 mẫu chung đủ điều kiện, không còn giá trị thiếu. Một ngày không đạt làm phương
 pháp này chưa khả dụng cho cả tháng; có thể chuyển sang phương pháp 1. Không bù
-cả ngày để làm cân bằng. D=0,A>0: chưa có mô hình; thiếu A: chưa có mô hình;
+chỉ nhằm làm cân bằng thương phẩm. D=0,A>0: chưa có mô hình; thiếu A: chưa có mô hình;
 A=D=0: dùng hệ số quy ước 0 để đường vật lý bằng 0, không có hình dạng chuẩn hóa.
 β khác α vì D dùng từng ngày, còn S dùng trung bình theo khách hàng và loại ngày.
 
@@ -156,6 +168,15 @@ nghiên cứu, danh mục mẫu và dữ liệu ngày được kiểm tra checks
 cũ dựng lại chuỗi ngày từ cache đo đếm đã xác minh; không sửa snapshot đã chốt.
 CSV chặn ô công thức từ chuỗi nguồn; XLSX không diễn giải chuỗi thành công thức/URL.
 Không suy luận khoảng tin cậy đại diện quần thể nếu chưa có thiết kế mẫu xác suất.
+
+Với nguồn MDMS mới, thời điểm lệch được đưa về đầu khoảng chu kỳ nguồn trước đó
+trong múi giờ khai báo, trước khi quy đổi quy ước đầu/cuối chu kỳ. Ví dụ chu kỳ
+30 phút: 10:32:02 và 10:58 đều về 10:30. Có thể chọn từ chối thời điểm lệch;
+cấu hình nguồn cũ mặc định giữ chế độ từ chối. Các bản ghi trùng sau hiệu chỉnh
+được kiểm tra, dữ liệu trùng khác nhau bị từ chối. Nhật ký trong dự án lưu tệp,
+dòng, mốc nguồn, mốc sau hiệu chỉnh, độ lệch và các cột ranh giới nguồn nếu có.
+Tab Kết quả xem tối đa 1.000 dòng; chọn xuất nhật ký để nhận đầy đủ các hiệu chỉnh
+thuộc kỳ nghiên cứu trong timestamp-adjustments.csv. Tệp này có thể rất lớn.
 
 ## 9. Khoảng ngày, danh mục thành phần và từng khách hàng
 

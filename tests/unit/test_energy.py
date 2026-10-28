@@ -59,6 +59,25 @@ def test_end_stamped_midnight_belongs_to_previous_day():
         interval_start("2024-03-01T00:07:00", 30, "start")
 
 
+@pytest.mark.parametrize(
+    "raw,minutes,convention,expected",
+    [
+        ("2026-01-01T10:32:02", 30, "start", "2026-01-01T10:30:00+07:00"),
+        ("2026-01-01T10:58:00", 30, "start", "2026-01-01T10:30:00+07:00"),
+        ("2026-01-01T10:14:59", 15, "start", "2026-01-01T10:00:00+07:00"),
+        ("2026-01-01T00:02:02", 30, "end", "2025-12-31T23:30:00+07:00"),
+        ("2026-01-01T03:32:02+00:00", 30, "start", "2026-01-01T10:30:00+07:00"),
+    ],
+)
+def test_floor_alignment_respects_source_interval_and_timestamp_convention(
+    raw, minutes, convention, expected
+):
+    assert (
+        interval_start(raw, minutes, convention, alignment="floor").isoformat()
+        == expected
+    )
+
+
 def test_normalization_has_defined_sum_and_zero_is_not_a_shape():
     shape = np.array([1.0, 3.0, 2.0, 2.0])
     assert normalize(shape, "share").sum() == pytest.approx(1)

@@ -13,6 +13,51 @@ def sample_catalog():
     )
 
 
+def test_mdms_uses_measurement_point_when_meter_id_contains_only_whitespace():
+    options = SourceOptions(values_already_scaled=True)
+    records = list(
+        canonicalize(
+            [
+                {
+                    "meter_id": "   ",
+                    "measurement_point_id": "M01",
+                    "timestamp": "2024-02-01T00:00",
+                    "value": "1",
+                }
+            ],
+            sample_catalog(),
+            options,
+        )
+    )
+    assert records[0].meter_id == "M01"
+    assert records[0].customer_id == "000123"
+
+
+def test_old_meter_key_policy_preserves_rejection_of_whitespace_meter_id():
+    rows = [
+        {
+            "meter_id": "   ",
+            "measurement_point_id": "M01",
+            "timestamp": "2024-02-01T00:00",
+            "value": "1",
+        }
+    ]
+    issues = []
+    assert (
+        list(
+            canonicalize(
+                rows,
+                sample_catalog(),
+                SourceOptions(values_already_scaled=True),
+                issues=issues,
+                meter_key_policy="legacy",
+            )
+        )
+        == []
+    )
+    assert issues[0]["reason"] == "missing meter mapping key"
+
+
 def test_long_mdms_resolves_customer_and_applies_semantics_once():
     options = SourceOptions(
         values_already_scaled=False,

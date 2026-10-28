@@ -42,6 +42,11 @@ def select_profiles(
         if month.original_coverage < config.min_original_coverage:
             excluded[identifier] = "insufficient_original_coverage"
             continue
+        if config.vee_completion == "complete" and any(
+            not np.isfinite(day.values).all() for day in month.days
+        ):
+            excluded[identifier] = "incomplete_vee"
+            continue
         dates = month_days(month.period)
         counts = calendar.counts(month.period)
         present = [kind for kind in DayType if counts[kind] > 0]

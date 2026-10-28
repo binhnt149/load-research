@@ -4,7 +4,7 @@ import csv
 import json
 import os
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from datetime import datetime, timedelta
 from itertools import groupby
 from pathlib import Path
@@ -361,6 +361,7 @@ def export_views(
     layout: str = "long",
     include_members: bool = False,
     chart_formats: tuple[str, ...] = (),
+    timestamp_adjustments: Iterable[dict] | None = None,
     check: Callable[[], None] = lambda: None,
 ) -> Path:
     check()
@@ -538,6 +539,33 @@ def export_views(
         ]
         if customer_rows:
             write_summary_csv(staging / "customer-vee.csv", customer_rows, check)
+
+        if timestamp_adjustments is not None:
+            timestamp_fields = (
+                "source_name",
+                "source_id",
+                "source_row",
+                "customer_id",
+                "meter_id",
+                "original_timestamp",
+                "aligned_timestamp",
+                "offset_seconds",
+                "original_interval_start",
+                "original_interval_end",
+            )
+            with (staging / "timestamp-adjustments.csv").open(
+                "x", encoding="utf-8-sig", newline=""
+            ) as stream:
+                writer = csv.writer(stream)
+                writer.writerow([field_label(field) for field in timestamp_fields])
+                for row in timestamp_adjustments:
+                    check()
+                    writer.writerow(
+                        [
+                            safe_csv_text(row.get(field, ""))
+                            for field in timestamp_fields
+                        ]
+                    )
 
         (staging / "phuong-phap.md").write_text(CALCULATIONS, encoding="utf-8")
         (staging / "run-config.json").write_text(

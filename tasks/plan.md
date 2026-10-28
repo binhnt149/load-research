@@ -78,3 +78,10 @@ Tra cứu khách hàng đọc canonical cache và cấu hình đã chốt theo t
 worker, không lấy tổng ngành hoặc nhân trọng số làm dữ liệu đo của khách hàng.
 Tách các điều khiển biểu đồ/khoảng ngày/danh mục sang module nhỏ để tránh dồn tất
 cả vào ResultsView. Giữ nguyên chỉnh sửa README cục bộ của người dùng.
+
+# Kế hoạch bổ sung: hiệu chỉnh MDMS và VEE — 28/10/2026
+
+- Bảo toàn hồ sơ cũ: cấu hình đã lưu, cache đã kiểm chứng, kết quả và truy vết trước/sau không bị diễn giải lại theo phương pháp mới.
+- Thời điểm được đưa về đầu khoảng trước đó theo chu kỳ nguồn, trước khi kiểm tra trùng, ghép công tơ và gom chu kỳ; ghi nhận mốc nguồn, mốc hiệu chỉnh và mức lệch. Với nguồn đóng dấu cuối chu kỳ, hiệu chỉnh dấu trước khi quy đổi về đầu chu kỳ.
+- Cần phân biệt **đủ 100% chu kỳ có giá trị** với **100% giá trị đo gốc**. Giá trị bù phải gắn cờ, có phương pháp/nguồn và không vượt qua khoảng được đánh dấu cấm bù. Bù dựa trên dữ liệu có căn cứ; loại khách hàng-tháng không thể hoàn chỉnh khỏi tập mẫu và ghi rõ lý do.
+- Thực hiện theo T61–T66 trong `tasks.md`: kiểm thử Red/Green từng lớp, kiểm tra snapshot cũ, pipeline, export, UI và kiểm chứng cuối; không thay đổi các hạng mục E01/E02/E03 đang mở.
