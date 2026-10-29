@@ -7,6 +7,7 @@ import platform
 import shutil
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator
+from dataclasses import asdict
 from datetime import UTC, date, datetime, time, timedelta
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
@@ -23,11 +24,13 @@ from load_research.daily import DailyAccumulator
 from load_research.domain.config import content_hash
 from load_research.importers.catalog import Catalog, load_billing, load_catalog
 from load_research.importers.metering import canonicalize
+from load_research.importers.strata import load_stratum_configuration
 from load_research.importers.tables import read_rows
 from load_research.infrastructure.store import IntervalStore
 from load_research.profiles import select_profiles
 from load_research.quality import repair_month
 from load_research.scaling import scale_industry
+from load_research.stratified_scaling import scale_stratified_industry
 from load_research.workspace import Workspace, atomic_json, file_hash
 
 
@@ -121,13 +124,14 @@ def _prepare_cache(
     ]
     key = content_hash(
         {
-            "schema": 5,
-            "canonicalizer": "active-import-v5",
+            "schema": 7,
+            "canonicalizer": "active-import-v7",
             "scope": request.config.scope,
             "periods": list(request.config.periods),
             "sources": manifest,
             "mapping": request.cmis_mapping,
             "meter_key_policy": request.meter_key_policy,
+            "collision_policy": request.config.collision_policy,
             "sheet": request.cmis_sheet,
             "delimiter": request.table_delimiter,
             "mdms": [source.to_dict() for source in request.mdms_sources],
@@ -180,6 +184,7 @@ def _prepare_cache(
                     catalog,
                     options,
                     source_id=source_ids[str(Path(source.path).resolve())],
+                    source_instance=index + 1,
                     issues=issues,
                     meter_key_policy=request.meter_key_policy,
                 )
@@ -196,11 +201,15 @@ def _prepare_cache(
                     }
                 )
             check()
-            store.validate()
+            store.validate(collision_policy=request.config.collision_policy)
             row_count = store.raw_count
             timestamp_adjustments = store.timestamp_adjustment_count
             timestamp_adjustments_preview = list(
                 itertools.islice(store.iter_timestamp_adjustments(), 1000)
+            )
+            timestamp_conflict_groups = store.timestamp_conflict_groups
+            timestamp_conflicts_preview = list(
+                itertools.islice(store.iter_timestamp_conflicts(), 1000)
             )
     finally:
         issues.close()
@@ -214,6 +223,8 @@ def _prepare_cache(
         "raw_intervals": row_count,
         "timestamp_adjustments": timestamp_adjustments,
         "timestamp_adjustments_preview": timestamp_adjustments_preview,
+        "timestamp_conflict_groups": timestamp_conflict_groups,
+        "timestamp_conflicts_preview": timestamp_conflicts_preview,
         "issues_count": issues.total,
         "issues_preview": list(issues),
         "issues_path": str(issues_path.relative_to(workspace.root)),
@@ -233,10 +244,14 @@ def _analyse_month(
     check: Callable[[], None],
     journal,
     run_id: str,
+    strata_config: dict | None = None,
 ) -> tuple[list[dict], dict]:
     quality: Counter[str] = Counter()
     reconciliation: dict = {}
     config_hash = request.config.content_hash
+
+    excluded_strata: dict[str, str] = {}
+    inconsistent_industries: set[str] = set()
 
     def customer_months():
         for grid in store.iter_customer_months(
@@ -293,9 +308,25 @@ def _analyse_month(
                     )
                     + "\n"
                 )
+            if strata_config is not None:
+                key = (month.customer.industry_code, month.customer.consumption_stratum)
+                if month.customer.consumption_stratum is None:
+                    excluded_strata[month.customer.customer_id] = (
+                        "annual_below_minimum"
+                        if month.customer.annual_energy_kwh is not None
+                        else "missing_customer_stratum"
+                    )
+                    continue
+                if key not in strata_config:
+                    excluded_strata[month.customer.customer_id] = (
+                        "missing_population_stratum"
+                    )
+                    inconsistent_industries.add(month.customer.industry_code)
+                    continue
             yield month
 
     daily: dict[str, DailyAccumulator] = {}
+    daily_strata: dict[tuple[str, str], DailyAccumulator] = {}
 
     def collect(month):
         code = month.customer.industry_code
@@ -312,18 +343,32 @@ def _analyse_month(
             [day.eligible for day in month.days],
             month.customer.weight,
         )
+        if strata_config is not None and month.customer.consumption_stratum is not None:
+            key = (code, month.customer.consumption_stratum)
+            if key not in daily_strata:
+                daily_strata[key] = DailyAccumulator(
+                    len(month.days), 1440 // request.config.interval_minutes
+                )
+            daily_strata[key].add(
+                month.source_values,
+                np.stack([day.values for day in month.days]),
+                [day.eligible for day in month.days],
+                month.customer.weight,
+            )
 
     selection = select_profiles(
         customer_months(), calendar, request.config, on_selected=collect
     )
     _eligible, catalog_excluded = catalog.month_customers(period)
-    excluded = {**catalog_excluded, **selection.excluded}
+    excluded = {**catalog_excluded, **selection.excluded, **excluded_strata}
     grouped = defaultdict(list)
     for profile in selection.profiles:
         grouped[profile.customer.industry_code].append(profile)
     industries = {link.customer.industry_code for link in catalog.links} | {
         industry for industry, month in billing if month == period
     }
+    if strata_config is not None:
+        industries |= {industry for industry, _group in strata_config}
     if request.selected_industries:
         industries &= set(request.selected_industries)
     counts = calendar.counts(period)
@@ -342,13 +387,34 @@ def _analyse_month(
                 kind: cluster_profiles(group, request.config)
                 for kind, group in by_kind.items()
             }
-            scaled = scale_industry(
-                profiles,
-                groups,
-                counts,
-                total.energy_kwh if total else None,
-                min_customers=request.config.min_customers,
-            )
+            stratification = None
+            if strata_config is None:
+                scaled = scale_industry(
+                    profiles,
+                    groups,
+                    counts,
+                    total.energy_kwh if total else None,
+                    min_customers=request.config.min_customers,
+                )
+            else:
+                population = {
+                    key[1]: value
+                    for key, value in strata_config.items()
+                    if key[0] == industry
+                }
+                scaled, stratification = scale_stratified_industry(
+                    profiles,
+                    groups,
+                    counts,
+                    total.energy_kwh if total else None,
+                    population,
+                    min_customers=request.config.min_customers,
+                )
+                if industry in inconsistent_industries:
+                    scaled.status = "missing_stratum_config"
+                    scaled.energy, scaled.contributions, scaled.alpha = {}, {}, None
+                    scaled.diagnostics["balance_error_kwh"] = None
+                    scaled.diagnostics["component_error_kwh"] = None
         except ValueError as error:
             cells.append(
                 {
@@ -380,6 +446,8 @@ def _analyse_month(
         members = [
             {
                 "customer_id": profile.customer.customer_id,
+                "consumption_stratum": profile.customer.consumption_stratum,
+                "annual_energy_kwh": profile.customer.annual_energy_kwh,
                 "day_type": profile.day_type.value,
                 "cluster_id": groups[profile.day_type].assignments[
                     profile.customer.customer_id
@@ -407,6 +475,11 @@ def _analyse_month(
                     for kind, group in groups.items()
                 },
                 "members": members,
+                **(
+                    {"stratification": stratification}
+                    if stratification is not None
+                    else {}
+                ),
             }
         )
     for cell in cells:
@@ -417,6 +490,15 @@ def _analyse_month(
                 [day.isoformat() for day in dates],
                 [calendar.classify(day).value for day in dates],
             )
+            if strata_config is not None:
+                cell["daily_data"]["strata"] = {
+                    group: accumulator.to_dict(
+                        [day.isoformat() for day in dates],
+                        [calendar.classify(day).value for day in dates],
+                    )
+                    for (industry, group), accumulator in daily_strata.items()
+                    if industry == cell["industry_code"]
+                }
     return cells, {
         "period": period,
         **quality,
@@ -470,6 +552,31 @@ def run_study(
                 for path in request.billing_paths
             )
             billing = load_billing(billing_rows, request.config.scope)
+            strata_config = (
+                load_stratum_configuration(
+                    Path(request.strata_paths[0]), delimiter=request.table_delimiter
+                )
+                if request.strata_paths
+                else None
+            )
+            if strata_config is not None:
+                source_path = str(Path(request.strata_paths[0]).resolve())
+                source = next(
+                    item
+                    for item in workspace.read_run(run_id)["sources"]
+                    if item["path"] == source_path
+                )
+                workspace.save_artifact(
+                    run_id,
+                    "stratum-config.json",
+                    {
+                        "source_sha256": source["sha256"],
+                        "method": "reference_energy_share",
+                        "rows": [
+                            asdict(strata_config[key]) for key in sorted(strata_config)
+                        ],
+                    },
+                )
             database, imported = _prepare_cache(
                 workspace, request, catalog, run_id, check, progress
             )
@@ -486,7 +593,7 @@ def run_study(
                     read_only=True,
                 ) as store,
             ):
-                store.validate()
+                store.validate(collision_policy=request.config.collision_policy)
                 for index, period in enumerate(request.config.periods):
                     check()
                     month_cells, month_quality = _analyse_month(
@@ -499,6 +606,7 @@ def run_study(
                         check,
                         journal,
                         run_id,
+                        strata_config,
                     )
                     for cell in month_cells:
                         daily_data = cell.pop("daily_data", None)
@@ -526,6 +634,7 @@ def run_study(
                 item.get("unknown_source_quality", 0) for item in quality
             )
             warnings |= imported.get("timestamp_adjustments", 0) > 0
+            warnings |= imported.get("timestamp_conflict_groups", 0) > 0
             warnings |= any(
                 cell["result"]["status"] == "valid_with_warnings" for cell in cells
             )
@@ -552,6 +661,11 @@ def run_study(
                     period: sorted(
                         {link.customer.industry_code for link in catalog.links}
                         | {industry for industry, month in billing if month == period}
+                        | (
+                            {industry for industry, _group in strata_config}
+                            if strata_config is not None
+                            else set()
+                        )
                     )
                     for period in request.config.periods
                 },

@@ -25,6 +25,7 @@ class MeterRecord:
     source_id: str
     source_row: int
     repair_blocked: bool = False
+    source_instance: int = 0
     original_timestamp: str | None = None
     aligned_timestamp: datetime | None = None
     offset_seconds: float | None = None
@@ -67,6 +68,7 @@ def canonicalize(
     options: SourceOptions,
     *,
     source_id: str = "source",
+    source_instance: int = 0,
     issues: list[dict] | None = None,
     meter_key_policy: str = "trimmed",
 ) -> Iterator[MeterRecord]:
@@ -184,6 +186,7 @@ def canonicalize(
                         source_id,
                         row_number,
                         interruption,
+                        source_instance,
                         str(timestamp) if changed else None,
                         aligned.replace(tzinfo=None) if changed else None,
                         (original - aligned).total_seconds() if changed else None,

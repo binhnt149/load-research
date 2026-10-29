@@ -12,6 +12,16 @@ from load_research.ui.window import MainWindow
 from load_research.workspace import Workspace
 
 
+def test_unrecognized_worker_error_keeps_localized_message_without_internal_detail(
+    qtbot,
+):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.show_error("unexpected storage failure", error_type="RuntimeError")
+    assert "kiểm tra" in window.status_label.text().lower()
+    assert "unexpected storage failure" not in window.log.toPlainText()
+
+
 def test_csv_preview_explains_wrong_column_count_and_source_line(qtbot, tmp_path):
     source = tmp_path / "mdms-sai-so-cot.csv"
     source.write_text("meter_id,value\nM001,10,20\n", encoding="utf-8")

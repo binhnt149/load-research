@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.4rc2 — 2026-10-29 (Windows thử nghiệm)
+
+- Khắc phục xung đột MDMS khi thời điểm lệch quy về cùng chu kỳ: ưu tiên bản ghi gần mốc, lưu đầy đủ quyết định và cảnh báo; trường hợp đồng hạng khác số liệu vẫn dừng.
+- Bổ sung lựa chọn nghiên cứu theo nhóm sản lượng A–E, suy rộng riêng theo thương phẩm tháng phân bổ ước tính từ bảng cấu hình ngành–nhóm; hiển thị, xuất kết quả và kiểm tra tính đầy đủ của từng nhóm.
+
 ## 0.1.4rc1 — 2026-10-28 (Windows thử nghiệm)
 
 - MDMS mới mặc định đưa thời điểm lệch về đầu khoảng chu kỳ nguồn; cấu hình cho phép giữ kiểm tra nghiêm ngặt. Nhật ký hiệu chỉnh có thể xem và xuất, xung đột số đo sau ghép bị từ chối.

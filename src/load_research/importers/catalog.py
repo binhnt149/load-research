@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from load_research.calendar import month_days
 from load_research.domain.energy import ENERGY_UNITS
+from load_research.domain.strata import classify_annual_energy
 from load_research.input_errors import source_row
 
 
@@ -30,6 +31,8 @@ class Customer:
     customer_id: str
     industry_code: str
     weight: float = 1.0
+    consumption_stratum: str | None = None
+    annual_energy_kwh: float | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +114,8 @@ class Catalog:
                     "customer_id": link.customer.customer_id,
                     "industry_code": link.customer.industry_code,
                     "sampling_weight": link.customer.weight,
+                    "consumption_stratum": link.customer.consumption_stratum,
+                    "annual_energy_kwh": link.customer.annual_energy_kwh,
                     "meter_id": link.meter_id,
                     "valid_from": link.valid_from.isoformat(),
                     "valid_to": link.valid_to.isoformat(),
@@ -188,10 +193,30 @@ def load_catalog(
             if row.get("organization_code", scope) != scope:
                 raise ValueError("customer scope does not match study scope")
             identifier = required_text(row, "customer_id")
+            raw_annual = row.get("annual_energy_kwh")
+            annual = (
+                number(raw_annual, decimal=decimal)
+                if raw_annual is not None and str(raw_annual).strip()
+                else None
+            )
+            provided = str(row.get("consumption_stratum") or "").strip().upper()
+            if provided and provided not in {"A", "B", "C", "D", "E"}:
+                raise ValueError("invalid customer consumption stratum")
+            calculated = (
+                classify_annual_energy(annual, boundary="higher")
+                if annual is not None
+                else None
+            )
+            if provided and annual is not None and provided != calculated:
+                raise ValueError(
+                    "customer annual energy contradicts consumption stratum"
+                )
             customer = Customer(
                 identifier,
                 required_text(row, "industry_code"),
                 number(row.get("sampling_weight") or 1, decimal=decimal),
+                provided or calculated,
+                annual,
             )
             if customer.weight <= 0:
                 raise ValueError("sampling weight must be positive")

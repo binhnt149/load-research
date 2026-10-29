@@ -59,7 +59,7 @@ class IntervalStore:
                 customer_id VARCHAR, industry_code VARCHAR, meter_id VARCHAR,
                 start TIMESTAMP, minutes SMALLINT, energy_kwh DOUBLE,
                 estimated BOOLEAN, quality_known BOOLEAN, source_id VARCHAR, source_row BIGINT,
-                repair_blocked BOOLEAN
+                repair_blocked BOOLEAN, source_instance INTEGER
             )
         """)
             self.connection.execute("""
@@ -67,7 +67,8 @@ class IntervalStore:
                 source_id VARCHAR, source_row BIGINT, customer_id VARCHAR,
                 meter_id VARCHAR, original_timestamp VARCHAR,
                 aligned_timestamp TIMESTAMP, offset_seconds DOUBLE,
-                original_interval_start VARCHAR, original_interval_end VARCHAR
+                original_interval_start VARCHAR, original_interval_end VARCHAR,
+                canonical_start TIMESTAMP, minutes SMALLINT, source_instance INTEGER
             )
         """)
         self._validated = False
@@ -121,6 +122,9 @@ class IntervalStore:
                     "customer_id",
                     "meter_id",
                     *audit_names,
+                    "start",
+                    "minutes",
+                    "source_instance",
                 )
                 audit_table = pa.table(
                     {
@@ -142,12 +146,24 @@ class IntervalStore:
         ).fetchone()
         if not exists or not exists[0]:
             return
+        columns = {
+            row[1]
+            for row in self.connection.execute(
+                "PRAGMA table_info('timestamp_adjustments')"
+            ).fetchall()
+        }
+        source_instance = (
+            "source_instance"
+            if "source_instance" in columns
+            else "0 AS source_instance"
+        )
         cursor = self.connection.execute(
-            "SELECT source_id, source_row, customer_id, meter_id, original_timestamp, aligned_timestamp, offset_seconds, original_interval_start, original_interval_end FROM timestamp_adjustments"
+            f"SELECT source_id, source_row, {source_instance}, customer_id, meter_id, original_timestamp, aligned_timestamp, offset_seconds, original_interval_start, original_interval_end FROM timestamp_adjustments"
         )
         names = (
             "source_id",
             "source_row",
+            "source_instance",
             "customer_id",
             "meter_id",
             "original_timestamp",
@@ -171,25 +187,115 @@ class IntervalStore:
             raise RuntimeError("Không thể đếm nhật ký hiệu chỉnh thời điểm")
         return int(row[0])
 
-    def validate(self) -> None:
+    def _table_exists(self, name: str) -> bool:
+        row = self.connection.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
+            [name],
+        ).fetchone()
+        return bool(row and row[0])
+
+    @property
+    def timestamp_conflict_groups(self) -> int:
+        if not self._table_exists("timestamp_conflicts"):
+            return 0
+        row = self.connection.execute(
+            "SELECT COUNT(*) FROM (SELECT meter_id, start, minutes FROM timestamp_conflicts GROUP BY 1,2,3)"
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+    def iter_timestamp_conflicts(self) -> Iterator[dict]:
+        if not self._table_exists("timestamp_conflicts"):
+            return
+        cursor = self.connection.execute(
+            "SELECT source_id, source_row, source_instance, customer_id, industry_code, meter_id, start, minutes, energy_kwh, estimated, quality_known, repair_blocked, original_timestamp, offset_seconds, selected FROM timestamp_conflicts"
+        )
+        names = (
+            "source_id",
+            "source_row",
+            "source_instance",
+            "customer_id",
+            "industry_code",
+            "meter_id",
+            "start",
+            "minutes",
+            "energy_kwh",
+            "estimated",
+            "quality_known",
+            "repair_blocked",
+            "original_timestamp",
+            "offset_seconds",
+            "selected",
+        )
+        while batch := cursor.fetchmany(20000):
+            for row in batch:
+                item = dict(zip(names, row, strict=True))
+                item["start"] = item["start"].isoformat()
+                yield item
+
+    def validate(self, *, collision_policy: str = "reject") -> None:
+        if collision_policy not in ("reject", "prefer_nearest"):
+            raise ValueError("invalid timestamp collision policy")
         conflict = self.connection.execute("""
             SELECT meter_id FROM raw_intervals GROUP BY meter_id, start, minutes
             HAVING COUNT(DISTINCT (customer_id, industry_code, energy_kwh, estimated, quality_known, repair_blocked)) > 1
             LIMIT 1
         """).fetchone()
-        if conflict:
+        if conflict and collision_policy == "reject":
             raise ValueError(
                 "conflicting duplicate intervals require explicit source resolution"
             )
+        if conflict and collision_policy == "prefer_nearest":
+            if not self._read_only:
+                self.connection.execute("""
+                CREATE OR REPLACE TABLE timestamp_conflicts AS
+                WITH groups AS (
+                    SELECT meter_id, start, minutes FROM raw_intervals GROUP BY 1,2,3
+                    HAVING COUNT(DISTINCT (customer_id, industry_code, energy_kwh, estimated, quality_known, repair_blocked)) > 1
+                ), candidates AS (
+                    SELECT r.*, a.original_timestamp, COALESCE(a.offset_seconds, 0) AS offset_seconds
+                    FROM raw_intervals r JOIN groups g USING (meter_id, start, minutes)
+                    LEFT JOIN timestamp_adjustments a ON r.source_id = a.source_id
+                        AND r.source_row = a.source_row AND r.source_instance = a.source_instance
+                        AND r.customer_id = a.customer_id AND r.meter_id = a.meter_id
+                        AND r.start = a.canonical_start AND r.minutes = a.minutes
+                ), ranked AS (
+                    SELECT *, MIN(offset_seconds) OVER (PARTITION BY meter_id, start, minutes) AS nearest
+                    FROM candidates
+                )
+                SELECT source_id, source_row, source_instance, customer_id, industry_code, meter_id, start, minutes, energy_kwh,
+                    estimated, quality_known, repair_blocked, original_timestamp, offset_seconds,
+                    offset_seconds = nearest AS selected
+                FROM ranked
+                """)
+            if not self._table_exists("timestamp_conflicts"):
+                raise ValueError(
+                    "conflicting duplicate intervals require explicit source resolution"
+                )
+            tied = self.connection.execute("""
+                SELECT meter_id FROM timestamp_conflicts WHERE selected GROUP BY meter_id, start, minutes
+                HAVING COUNT(DISTINCT (customer_id, industry_code, energy_kwh, estimated, quality_known, repair_blocked)) > 1 LIMIT 1
+            """).fetchone()
+            if tied:
+                raise ValueError(
+                    "conflicting duplicate intervals require explicit source resolution"
+                )
         if not self._read_only:
-            self.connection.execute("""
+            select_source = (
+                """raw_intervals r LEFT JOIN timestamp_conflicts c
+                   USING (source_id, source_row, source_instance, customer_id, meter_id, start, minutes)
+                   WHERE c.selected IS NULL OR c.selected"""
+                if conflict and collision_policy == "prefer_nearest"
+                else "raw_intervals r"
+            )
+            self.connection.execute(f"""
             CREATE OR REPLACE VIEW clean_intervals AS
-            SELECT customer_id, industry_code, meter_id, start, minutes, energy_kwh,
-                estimated, quality_known,
-                FIRST(source_id ORDER BY source_id, source_row) AS source_id,
-                FIRST(source_row ORDER BY source_id, source_row) AS source_row, repair_blocked
-            FROM raw_intervals
-            GROUP BY customer_id, industry_code, meter_id, start, minutes, energy_kwh, estimated, quality_known, repair_blocked
+            SELECT r.customer_id, r.industry_code, r.meter_id, r.start, r.minutes, r.energy_kwh,
+                r.estimated, r.quality_known,
+                FIRST(r.source_id ORDER BY r.source_id, r.source_row) AS source_id,
+                FIRST(r.source_row ORDER BY r.source_id, r.source_row) AS source_row, r.repair_blocked,
+                FIRST(r.source_instance ORDER BY r.source_id, r.source_row, r.source_instance) AS source_instance
+            FROM {select_source}
+            GROUP BY r.customer_id, r.industry_code, r.meter_id, r.start, r.minutes, r.energy_kwh, r.estimated, r.quality_known, r.repair_blocked
         """)
         overlap = self.connection.execute("""
             SELECT meter_id FROM (

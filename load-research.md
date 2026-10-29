@@ -914,3 +914,23 @@ Phạm vi mở rộng: ẩn cửa sổ dòng lệnh khi mở desktop Windows; Vi
 - Lần nghiên cứu mới ghi phiên bản phương pháp `class-profile-v2` và tham số;
   cấu hình cũ thiếu các trường mới giữ quy tắc kiểm tra thời điểm, ghép mã và VEE
   cũ khi nạp/chạy lại. Snapshot kết quả đã lưu không bị sửa.
+
+## Bổ sung 29/10/2026 — xung đột thời điểm và tầng sản lượng
+
+- Cùng công tơ–chu kỳ có số liệu khác nhau sau khi đưa về đầu khoảng: ưu tiên
+  thời điểm gốc gần đầu khoảng nhất, bao gồm ưu tiên thời điểm đúng mốc. Nếu các
+  giá trị khác nhau đồng hạng gần nhất thì dừng để người dùng xử lý. Lưu và cho
+  phép xuất các dòng được chọn/không chọn, mã nguồn và độ lệch. Cấu hình cũ giữ
+  chế độ từ chối xung đột; lần mới lưu rõ quy tắc đã chọn.
+- Phân nhóm khách hàng theo điện năng năm hoặc mã nhóm A–E trong CMIS. Các mốc
+  10.000, 100.000, 1.000.000, 10.000.000 kWh/năm thuộc nhóm cao hơn; dưới 501
+  ngoài phạm vi. Khi hai thông tin cùng có phải khớp.
+- Bảng cấu hình liệt kê đầy đủ nhóm có khách hàng trong ngành. Thương phẩm tháng
+  của từng nhóm được ước tính theo tỷ trọng tổng điện năng nhóm trong bảng tham
+  chiếu, sau đó suy rộng riêng và cộng các nhóm. Ghi rõ đây là phân bổ ước tính,
+  không phải thương phẩm thực đo của từng nhóm. Tập nguồn và thống kê được lưu
+  checksum, bảng hệ số và đường từng nhóm được xem/xuất. Không tạo tổng đầy đủ
+  khi thiếu mẫu, thiếu nhóm hoặc dữ liệu cấu hình mâu thuẫn.
+- Với suy rộng giữ biến thiên ngày, hệ số được tính và áp riêng cho từng nhóm,
+  sau đó cộng; không dùng một hệ số chung thay thế. Bản không chọn bảng cấu hình
+  tiếp tục phương pháp tổng ngành cũ; snapshot đã lưu không bị sửa.

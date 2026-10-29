@@ -75,3 +75,34 @@ def test_measurement_semantics_and_scaling_must_be_declared():
     with pytest.raises(ValueError):
         SourceOptions(values_already_scaled=False, multiplier=0)
     assert SourceOptions(values_already_scaled=True).unit == "kWh"
+
+
+def test_stratum_configuration_source_roundtrips_and_is_part_of_manifest(tmp_path):
+    from dataclasses import replace
+
+    from load_research.application.models import SourceInput, StudyRequest
+    from load_research.domain.config import RunConfig, SourceOptions
+
+    source = tmp_path / "strata.xlsx"
+    request = StudyRequest(
+        RunConfig(periods=("2026-01",), scope="NPC"),
+        (str(tmp_path / "cmis.xlsx"),),
+        (
+            SourceInput(
+                str(tmp_path / "mdms.csv"), SourceOptions(values_already_scaled=True)
+            ),
+        ),
+        strata_paths=(str(source),),
+    )
+    assert StudyRequest.from_dict(request.to_dict()).to_dict() == request.to_dict()
+    assert source.resolve() in request.all_paths()
+    with pytest.raises(ValueError):
+        replace(request, strata_paths=(str(source), str(tmp_path / "other.xlsx")))
+
+
+def test_old_study_configuration_preserves_conflict_rejection_policy():
+    config = RunConfig(periods=("2026-01",), scope="NPC")
+    assert config.collision_policy == "prefer_nearest"
+    old = config.to_dict()
+    old.pop("collision_policy")
+    assert RunConfig.from_dict(old).collision_policy == "reject"

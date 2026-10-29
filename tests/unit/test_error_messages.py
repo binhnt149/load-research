@@ -51,3 +51,45 @@ def test_encoding_and_unknown_errors_have_safe_vietnamese_fallbacks():
     message = format_error("unknown third-party reader exception")
     assert "unknown third-party" not in message
     assert "kiểm tra" in message.lower()
+
+
+@pytest.mark.parametrize(
+    "technical",
+    [
+        "conflicting duplicate intervals require explicit source resolution",
+        "overlapping meter intervals require explicit resolution",
+    ],
+)
+def test_meter_interval_conflicts_explain_what_to_check(technical):
+    message = format_error(technical)
+    assert "công tơ" in message.lower()
+    assert "chu kỳ" in message.lower()
+    assert "kiểm tra" in message.lower()
+
+
+def test_timestamp_audit_distinguishes_identical_sources_and_sheets():
+    from load_research.error_messages import timestamp_adjustment_rows
+
+    result = {
+        "sources": [
+            {"sha256": "same", "path": "/a/a.xlsx"},
+            {"sha256": "same", "path": "/b/b.xlsx"},
+        ],
+        "request": {
+            "mdms_sources": [
+                {"path": "/a/a.xlsx", "options": {"sheet": "Sheet1"}},
+                {"path": "/b/b.xlsx", "options": {"sheet": "Sheet2"}},
+            ]
+        },
+        "import": {
+            "timestamp_adjustments_preview": [
+                {"source_id": "same", "source_instance": 1},
+                {"source_id": "same", "source_instance": 2},
+            ]
+        },
+    }
+    rows = timestamp_adjustment_rows(result)
+    assert [(row["source_name"], row["source_sheet"]) for row in rows] == [
+        ("a.xlsx", "Sheet1"),
+        ("b.xlsx", "Sheet2"),
+    ]

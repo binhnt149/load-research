@@ -57,7 +57,7 @@ def load_daily(
         threads=config.worker_threads,
         read_only=True,
     ) as store:
-        store.validate()
+        store.validate(collision_policy=config.collision_policy)
         for cell in legacy:
             accumulator = DailyAccumulator(len(dates), 1440 // config.interval_minutes)
             members = {row["customer_id"]: row["weight"] for row in cell["members"]}

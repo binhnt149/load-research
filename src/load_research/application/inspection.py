@@ -45,7 +45,7 @@ def inspect_customer(
         threads=config.worker_threads,
         read_only=True,
     ) as store:
-        store.validate()
+        store.validate(collision_policy=config.collision_policy)
         for period in sorted({day[:7] for day in dates}):
             check()
             grid = store.inspection_month(

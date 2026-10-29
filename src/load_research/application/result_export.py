@@ -7,7 +7,7 @@ from pathlib import Path
 from load_research.application.daily import load_daily
 from load_research.calendar import ResearchCalendar, month_days
 from load_research.domain.config import RunConfig
-from load_research.exports import source_basename
+from load_research.error_messages import timestamp_source_details, timestamp_source_maps
 from load_research.infrastructure.store import IntervalStore
 from load_research.result_reporting import export_views
 from load_research.result_view import (
@@ -49,25 +49,27 @@ def export_selection(
         chart_formats=options.get("chart_formats", ()),
         layout=options.get("layout", "wide"),
         include_members=options.get("include_members", False),
-        timestamp_adjustments=_timestamp_adjustments(workspace, result, check)
+        timestamp_adjustments=_timestamp_records(
+            workspace, result, check, "adjustments"
+        )
+        if options.get("include_timestamp_adjustments")
+        else None,
+        timestamp_conflicts=_timestamp_records(workspace, result, check, "conflicts")
         if options.get("include_timestamp_adjustments")
         else None,
         check=check,
     )
 
 
-def _timestamp_adjustments(
-    workspace: Workspace, result: dict, check: Callable[[], None]
+def _timestamp_records(
+    workspace: Workspace, result: dict, check: Callable[[], None], kind: str
 ) -> Iterator[dict]:
     imported = result["import"]
     database = workspace.safe_path(f"cache/{imported['key']}.duckdb")
     check()
     if not database.is_file() or file_hash(database) != imported["database_hash"]:
         raise ValueError("canonical cache is missing or changed")
-    sources = {
-        source["sha256"]: source_basename(source["path"])
-        for source in result.get("sources", [])
-    }
+    sources, instances = timestamp_source_maps(result)
     config = RunConfig.from_dict(result["config"])
     with IntervalStore(
         database,
@@ -75,12 +77,14 @@ def _timestamp_adjustments(
         threads=config.worker_threads,
         read_only=True,
     ) as store:
-        for row in store.iter_timestamp_adjustments():
+        records = (
+            store.iter_timestamp_adjustments()
+            if kind == "adjustments"
+            else store.iter_timestamp_conflicts()
+        )
+        for row in records:
             check()
-            yield {
-                "source_name": sources.get(row["source_id"], "Nguồn MDMS"),
-                **row,
-            }
+            yield timestamp_source_details(row, sources, instances)
 
 
 def _prepare_views(workspace, result, selection, options, check):

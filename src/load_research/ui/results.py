@@ -219,6 +219,8 @@ class ResultsView(QWidget):
         )
         self.customer_quality_model = RecordsModel(self)
         self.timestamp_model = RecordsModel(self)
+        self.strata_model = RecordsModel(self)
+        self.conflicts_model = RecordsModel(self)
         for label, model in (
             ("Chu kỳ", self.table_model),
             ("Hệ số suy rộng", self.factors_model),
@@ -231,6 +233,8 @@ class ResultsView(QWidget):
             ("Đối soát CMIS toàn tháng", self.reconciliation_model),
             ("Chi tiết VEE khách hàng", self.customer_quality_model),
             ("Điều chỉnh thời điểm MDMS", self.timestamp_model),
+            ("Suy rộng nhóm sản lượng", self.strata_model),
+            ("Xung đột thời điểm MDMS", self.conflicts_model),
         ):
             view = QTableView()
             view.setModel(model)
@@ -327,7 +331,9 @@ class ResultsView(QWidget):
         self.clear_current_view()
         self.import_model.set_records([])
         self.timestamp_model.set_records([])
+        self.conflicts_model.set_records([])
         self.data_tabs.setTabText(10, "Điều chỉnh thời điểm MDMS")
+        self.data_tabs.setTabText(12, "Xung đột thời điểm MDMS")
         self.clear_chart_point()
         self.comparison_label.clear()
         self.comparison_label.hide()
@@ -353,9 +359,16 @@ class ResultsView(QWidget):
         self.comparison_label.hide()
         self.import_model.set_records(import_issue_rows(result))
         self.timestamp_model.set_records(timestamp_adjustment_rows(result))
+        self.conflicts_model.set_records(
+            timestamp_adjustment_rows(result, conflicts=True)
+        )
         count = result.get("import", {}).get("timestamp_adjustments", 0)
         self.data_tabs.setTabText(
             10, f"Điều chỉnh thời điểm ({count}; xem tối đa 1.000 dòng)"
+        )
+        conflicts = result.get("import", {}).get("timestamp_conflict_groups", 0)
+        self.data_tabs.setTabText(
+            12, f"Xung đột ({conflicts} chu kỳ; xem tối đa 1.000 dòng)"
         )
         source_minutes = result["config"]["interval_minutes"]
         self.fill(
@@ -700,6 +713,7 @@ class ResultsView(QWidget):
             self.statistics_model,
             self.reconciliation_model,
             self.customer_quality_model,
+            self.strata_model,
         ):
             model.set_records([])
 
@@ -764,9 +778,18 @@ class ResultsView(QWidget):
                 view = build_result_view(self.named_result(), selection)
             self.current_view = view
             self.factors_model.set_records(view.get("daily_factors", view["factors"]))
+            self.strata_model.set_records(view.get("strata_factors", []))
             self.missing_model.set_records(view["missing"])
             families: tuple[str, ...] = (
-                ("industry", "day_type", "behavior", "source", "processed", "expanded")
+                (
+                    "industry",
+                    "stratum",
+                    "day_type",
+                    "behavior",
+                    "source",
+                    "processed",
+                    "expanded",
+                )
                 if self.components.isChecked()
                 else ()
             )

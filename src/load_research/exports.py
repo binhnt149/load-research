@@ -304,7 +304,7 @@ def _portable_request(result: dict) -> dict:
         **result.get("request", {"config": result["config"]}),
         "calendar": result.get("calendar", {}),
     }
-    for key in ("cmis_paths", "billing_paths", "calendar_paths"):
+    for key in ("cmis_paths", "billing_paths", "calendar_paths", "strata_paths"):
         payload[key] = [source_basename(name) for name in payload.get(key, [])]
     payload["mdms_sources"] = [
         {**source, "path": source_basename(source["path"])}

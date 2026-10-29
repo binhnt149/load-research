@@ -85,3 +85,18 @@ cả vào ResultsView. Giữ nguyên chỉnh sửa README cục bộ của ngư�
 - Thời điểm được đưa về đầu khoảng trước đó theo chu kỳ nguồn, trước khi kiểm tra trùng, ghép công tơ và gom chu kỳ; ghi nhận mốc nguồn, mốc hiệu chỉnh và mức lệch. Với nguồn đóng dấu cuối chu kỳ, hiệu chỉnh dấu trước khi quy đổi về đầu chu kỳ.
 - Cần phân biệt **đủ 100% chu kỳ có giá trị** với **100% giá trị đo gốc**. Giá trị bù phải gắn cờ, có phương pháp/nguồn và không vượt qua khoảng được đánh dấu cấm bù. Bù dựa trên dữ liệu có căn cứ; loại khách hàng-tháng không thể hoàn chỉnh khỏi tập mẫu và ghi rõ lý do.
 - Thực hiện theo T61–T66 trong `tasks.md`: kiểm thử Red/Green từng lớp, kiểm tra snapshot cũ, pipeline, export, UI và kiểm chứng cuối; không thay đổi các hạng mục E01/E02/E03 đang mở.
+## Tầng sản lượng và lỗi RC1 — 29/10/2026
+
+T67–T73 nối tiếp kế hoạch hiện hữu, giữ nguyên các task/điều kiện chưa hoàn tất.
+Xử lý lỗi trước và lưu chứng cứ; không giả định thông báo tổng quát xác định được
+nguyên nhân. Người dùng đã tải tệp MDMS để tiếp tục tái hiện.
+
+Bảng cấu hình cung cấp 18 ngành, các nhóm A–E, số khách hàng và thống kê sản
+lượng theo ngành–nhóm. Tệp CMIS mẫu chưa có điện năng năm/nhóm khách hàng; bảng
+thương phẩm mẫu chỉ có tổng ngành–tháng. Người dùng xác nhận sẽ bổ sung điện năng
+năm hoặc nhóm A–E vào CMIS; mốc ranh giới thuộc nhóm cao hơn và dưới 501 kWh/năm
+ngoài phạm vi. Thương phẩm tháng ngành–tầng được ước tính bằng thương phẩm tháng
+ngành nhân tỷ trọng tổng sản lượng tầng / tổng sản lượng các tầng của ngành trong
+bảng cấu hình. Ghi rõ giả định cơ cấu không đổi theo tháng, nguồn/tham số và cảnh
+báo thiếu tầng; không coi tổng năm là số đo thương phẩm tháng từng tầng. Giữ
+phương pháp cũ khi không chọn tính theo tầng và giữ nguyên snapshot trước đó.

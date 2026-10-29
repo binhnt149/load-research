@@ -35,6 +35,12 @@ MESSAGES = {
     "billing energy overflow": "Điện năng thương phẩm vượt giới hạn tính toán. Kiểm tra giá trị và đơn vị.",
     "duplicate industry-month billing total": "Có nhiều tổng điện năng thương phẩm cho cùng ngành-tháng. Hãy giữ một tổng đúng phạm vi.",
     "missing interval timestamp": "Thiếu thời điểm chu kỳ đo. Kiểm tra timestamp và quy ước đầu/cuối chu kỳ.",
+    "conflicting duplicate intervals require explicit source resolution": "Cùng công tơ và chu kỳ có nhiều số liệu hoặc trạng thái chất lượng khác nhau, có thể phát sinh sau hiệu chỉnh thời điểm. Kiểm tra các dòng MDMS trùng và xử lý xung đột trước khi chạy lại.",
+    "overlapping meter intervals require explicit resolution": "Các chu kỳ của cùng công tơ bị chồng lấn. Kiểm tra độ dài chu kỳ, thời điểm đầu/cuối và các dòng MDMS trùng trước khi chạy lại.",
+    "invalid consumption stratum; expected a to e": "Nhóm sản lượng không hợp lệ. Dùng mã nhóm A, B, C, D hoặc E.",
+    "stratum population count must be a positive integer": "Số khách hàng của tầng phải là số nguyên dương. Kiểm tra bảng cấu hình chọn mẫu.",
+    "duplicate industry and consumption stratum": "Bảng cấu hình có nhiều dòng cho cùng mã ngành và nhóm sản lượng. Hãy xử lý các dòng trùng.",
+    "stratum configuration is empty": "Bảng cấu hình chọn mẫu không có dữ liệu ngành và nhóm sản lượng.",
     "wide row date must be a local calendar date": "Ngày trong MDMS dạng rộng phải là ngày địa phương YYYY-MM-DD, không kèm giờ hoặc múi giờ.",
     "mdms scope differs from study scope": "Phạm vi đơn vị MDMS không khớp nghiên cứu. Kiểm tra dữ liệu và mã đơn vị.",
     "mdms channel differs from declared import channel": "Kênh MDMS không khớp kênh điện năng tác dụng nhận đã khai báo. Kiểm tra channel.",
@@ -190,14 +196,37 @@ def import_issue_rows(result: dict) -> list[dict]:
     ]
 
 
-def timestamp_adjustment_rows(result: dict) -> list[dict]:
+def timestamp_source_maps(result: dict) -> tuple[dict, dict]:
     sources = {source["sha256"]: source["path"] for source in result.get("sources", [])}
+    instances = {
+        index: (source["path"], source.get("options", {}).get("sheet"))
+        for index, source in enumerate(
+            result.get("request", {}).get("mdms_sources", []), 1
+        )
+    }
+    return sources, instances
+
+
+def timestamp_source_details(row: dict, sources: dict, instances: dict) -> dict:
+    path, sheet = instances.get(
+        row.get("source_instance"),
+        (sources.get(row.get("source_id"), "Nguồn MDMS"), None),
+    )
+    return {
+        "source_name": str(path).replace("\\", "/").rsplit("/", 1)[-1],
+        "source_sheet": sheet,
+        **row,
+    }
+
+
+def timestamp_adjustment_rows(result: dict, *, conflicts: bool = False) -> list[dict]:
+    sources, instances = timestamp_source_maps(result)
     return [
-        {
-            "source_name": str(sources.get(row.get("source_id"), "Nguồn MDMS"))
-            .replace("\\", "/")
-            .rsplit("/", 1)[-1],
-            **row,
-        }
-        for row in result.get("import", {}).get("timestamp_adjustments_preview", [])
+        timestamp_source_details(row, sources, instances)
+        for row in result.get("import", {}).get(
+            "timestamp_conflicts_preview"
+            if conflicts
+            else "timestamp_adjustments_preview",
+            [],
+        )
     ]

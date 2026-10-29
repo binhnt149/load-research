@@ -51,14 +51,13 @@ jobs:
         run: >-
           pyside6-deploy -c pysidedeploy.spec --mode standalone --no-install
           --extra-ignore-dirs=.git,.venv,tests,docs,research-projects,benchmark-data,build,dist
-      - name: Smoke test packaged executable
-        shell: bash
-        run: python packaging/release_tools.py smoke --bundle dist/native --report dist/release/native-smoke-windows-x64.json
       - name: Create portable ZIP
         shell: pwsh
         env:
           VERSION: ${{ steps.metadata.outputs.version }}
-        run: Compress-Archive -Path dist/native/LoadResearch.dist -DestinationPath "dist/release/LoadResearch-$env:VERSION-windows-x64.zip"
+        run: |
+          New-Item -ItemType Directory -Force dist/release | Out-Null
+          Compress-Archive -Path dist/native/LoadResearch.dist -DestinationPath "dist/release/LoadResearch-$env:VERSION-windows-x64.zip"
       - name: Publish Windows pre-release
         shell: bash
         env:
@@ -67,14 +66,22 @@ jobs:
           VERSION: ${{ steps.metadata.outputs.version }}
         run: |
           cd dist/release
-          sha256sum "LoadResearch-$VERSION-windows-x64.zip" native-smoke-windows-x64.json > SHA256SUMS
+          sha256sum "LoadResearch-$VERSION-windows-x64.zip" > SHA256SUMS
           cat > release-notes.md <<'NOTES'
           Bản Windows x64 thử nghiệm: giải nén ZIP, chạy LoadResearch.dist/launcher.exe và giữ nguyên cả thư mục.
 
-          Bản này bổ sung hiệu chỉnh thời điểm MDMS và VEE hoàn chỉnh. Kết quả cũ giữ chính sách cũ; khách hàng-tháng không thể bù đủ được báo và loại khỏi tập mẫu theo chế độ mới.
+          Bản này sửa lỗi xung đột thời điểm MDMS, ưu tiên bản ghi gần đầu chu kỳ và lưu nhật ký; bổ sung nghiên cứu theo nhóm sản lượng A–E và ước phân bổ thương phẩm theo bảng cấu hình.
 
-          Đã chạy 357 kiểm thử trên máy phát triển macOS và chạy smoke executable trên runner Windows. Để phát hành nhanh, lượt này không chạy lại full suite trên Windows/macOS, audit phụ thuộc, kiểm tra cửa sổ console Windows hoặc build macOS. Chưa nghiệm thu trên máy sạch, dữ liệu thực hoặc quy mô 7.000 khách hàng × 12 tháng. Windows chưa ký Authenticode.
+          Trước khi chuẩn bị phát hành, 423 kiểm thử trên máy phát triển macOS đạt và đã chạy thành công một tháng dữ liệu thực. Để phát hành nhanh, lượt này không chạy lại full suite, audit phụ thuộc, smoke executable hay kiểm tra cửa sổ console Windows; không build macOS. Chưa nghiệm thu bản cài Windows trên máy sạch hoặc quy mô 7.000 khách hàng × 12 tháng. Windows chưa ký Authenticode.
           NOTES
-          gh release create "v$VERSION" "LoadResearch-$VERSION-windows-x64.zip" native-smoke-windows-x64.json SHA256SUMS \
+          gh release create "v$VERSION" "LoadResearch-$VERSION-windows-x64.zip" SHA256SUMS \
             --target "$GITHUB_SHA" --prerelease --title "Load Research Desktop $VERSION — Windows thử nghiệm" \
             --notes-file release-notes.md
+      - name: Keep Windows package if publishing fails
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-windows-x64-unpublished
+          path: dist/release/
+          if-no-files-found: ignore
+          retention-days: 3

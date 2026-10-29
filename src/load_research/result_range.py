@@ -75,6 +75,15 @@ def concatenate_views(
         for v in views
         for r in v["factors"]
     }
+    strata_factors = {
+        (r["industry_code"], r.get("year_month", v["year_month"]), r["stratum"]): {
+            **r,
+            "date": v["date"],
+            "daily_method": v.get("method"),
+        }
+        for v in views
+        for r in v.get("strata_factors", [])
+    }
     billing = [r["billing_kwh"] for r in factors.values()]
     month_scopes = {}
     for period in sorted({v["year_month"] for v in views}):
@@ -110,6 +119,7 @@ def concatenate_views(
         "complete": all(v["complete"] for v in views),
         "missing": [{**r, "date": v["date"]} for v in views for r in v["missing"]],
         "factors": list(factors.values()),
+        "strata_factors": list(strata_factors.values()),
         "daily_factors": [
             {**r, "date": v["date"], "year_month": v["year_month"]}
             for v in views

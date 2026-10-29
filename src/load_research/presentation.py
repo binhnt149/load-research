@@ -8,11 +8,26 @@ FIELDS = {
     "source_name": "Tệp nguồn",
     "source_id": "SHA-256 nguồn",
     "source_row": "Dòng nguồn",
+    "source_instance": "Thứ tự nguồn MDMS",
+    "source_sheet": "Trang tính nguồn",
     "source_slot": "Chu kỳ nguồn",
     "original_timestamp": "Thời điểm nguồn",
     "aligned_timestamp": "Thời điểm sau hiệu chỉnh",
     "offset_seconds": "Độ lệch về sau so với mốc (giây)",
     "vee_completion": "Chế độ hoàn chỉnh dữ liệu VEE",
+    "collision_policy": "Quy tắc xử lý số liệu trùng chu kỳ",
+    "stratum": "Nhóm sản lượng",
+    "consumption_stratum": "Nhóm sản lượng khách hàng",
+    "annual_energy_kwh": "Điện năng năm khách hàng (kWh)",
+    "selected": "Được chọn",
+    "start": "Đầu chu kỳ sau hiệu chỉnh",
+    "minutes": "Độ dài chu kỳ nguồn (phút)",
+    "energy_kwh": "Điện năng chu kỳ (kWh)",
+    "population_count": "Số khách hàng toàn tầng",
+    "reference_energy_kwh": "Điện năng tham chiếu của tầng (kWh)",
+    "allocated_billing_kwh": "Thương phẩm tháng phân bổ ước tính (kWh)",
+    "daily_factor": "Hệ số suy rộng biến thiên ngày theo tầng",
+    "daily_method": "Phương pháp suy rộng từng ngày",
     "original_interval_start": "Đầu chu kỳ nguồn",
     "original_interval_end": "Cuối chu kỳ nguồn",
     "message": "Thông báo và hướng xử lý",
@@ -145,6 +160,8 @@ STATUSES = {
     "partial": "Kết quả chưa đầy đủ",
     "preview_insufficient_samples": "Xem tham khảo: chưa đủ cỡ mẫu",
     "no_eligible_samples": "Không có mẫu đủ điều kiện",
+    "incomplete_strata": "Thiếu số liệu hoặc mẫu của một hay nhiều tầng sản lượng",
+    "missing_stratum_config": "Thiếu cấu hình sản lượng của ngành",
     "missing_billing": "Thiếu điện năng thương phẩm",
     "no_positive_shape": "Không có hình dạng phụ tải dương để suy rộng",
     "needs_review": "Cần kiểm tra lại",
@@ -167,6 +184,10 @@ REASONS = {
     "missing_billing": "Thiếu điện năng thương phẩm",
     "insufficient_original_coverage": "Độ phủ dữ liệu nguồn chưa đạt ngưỡng",
     "incomplete_vee": "Không thể bù đủ chu kỳ bằng dữ liệu có căn cứ hoặc có chu kỳ cấm bù",
+    "missing_customer_stratum": "Thiếu nhóm sản lượng hoặc điện năng năm hợp lệ của khách hàng",
+    "annual_below_minimum": "Điện năng năm dưới 501 kWh, ngoài phạm vi nhóm A–E",
+    "missing_population_stratum": "Nhóm sản lượng khách hàng không có trong bảng cấu hình ngành",
+    "reference_share_assumes_monthly_stability": "Phân bổ thương phẩm tháng ước tính theo tỷ trọng kỳ tham chiếu; giả định cơ cấu không đổi",
     "partial_month_or_changed_industry_weight": "Không đủ hiệu lực trọn tháng hoặc đổi ngành/trọng số",
     "period_basis_unconfirmed_or_incomplete_mdms": "Chưa xác nhận cùng kỳ hoặc dữ liệu MDMS chưa đủ tháng",
     "insufficient_daily_cohort": "Chuỗi ngày của tập mẫu chung chưa đủ điều kiện",
@@ -185,6 +206,7 @@ SCOPES = {
     "dimensionless": "Không thứ nguyên",
 }
 METHODS = {
+    "reference_energy_share": "Ước phân bổ theo tỷ trọng điện năng tham chiếu",
     "customer": "Dữ liệu từng khách hàng trước/sau VEE",
     "source": "Dữ liệu nguồn",
     "linear": "Nội suy tuyến tính",
@@ -228,7 +250,7 @@ def translated_value(key: str, value: object) -> object:
         else SCOPES
         if key in ("profile_scope", "profile_kind")
         else METHODS
-        if key == "method"
+        if key in ("method", "daily_method")
         else REASONS
         if key == "reason"
         else {}

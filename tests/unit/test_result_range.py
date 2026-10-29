@@ -58,6 +58,40 @@ def test_inclusive_cross_month_range_keeps_monthly_models_and_energy():
     }
 
 
+def test_stratum_factors_cover_each_month_in_date_range():
+    result, daily = two_months()
+    for cell in result["cells"]:
+        cell["stratification"] = {
+            "strata": {
+                "A": {
+                    "population_count": 10,
+                    "reference_energy_kwh": 50000,
+                    "allocated_billing_kwh": cell["result"]["billing_kwh"],
+                    "cohort_size": 1,
+                    "result": copy.deepcopy(cell["result"]),
+                }
+            }
+        }
+        daily[cell["year_month"]][cell["industry_code"]]["strata"] = {
+            "A": copy.deepcopy(daily[cell["year_month"]][cell["industry_code"]])
+        }
+    view = build_range_view(
+        result,
+        ResultSelection("2024-04", unit="kWh"),
+        daily,
+        "2024-04-30",
+        "2024-05-01",
+        method="variation",
+    )
+    assert {
+        (row["industry_code"], row["year_month"], row["stratum"])
+        for row in view["strata_factors"]
+    } == {
+        (code, month, "A") for code in ("01", "02") for month in ("2024-04", "2024-05")
+    }
+    assert all(row["daily_factor"] is not None for row in view["strata_factors"])
+
+
 def test_range_normalizes_after_concatenation_and_resampling():
     result, daily = two_months()
     view = build_range_view(

@@ -22,6 +22,7 @@ from load_research.workspace import file_hash
 KINDS = {
     "overall": "Tổng hợp",
     "industry": "So sánh ngành",
+    "stratum": "Nhóm sản lượng",
     "day_type": "So sánh loại ngày",
     "behavior": "Đóng góp nhóm hành vi",
     "source": "Mẫu nguồn trước VEE",
@@ -92,6 +93,7 @@ def render_view(
     figure: Figure | None = None,
     families: tuple[str, ...] = (
         "industry",
+        "stratum",
         "day_type",
         "behavior",
         "source",
@@ -275,6 +277,7 @@ def _curve_metadata(view: dict, curve: dict) -> dict:
         "Mã thành phần phụ tải": view.get("component_code", ""),
         "Phiên bản danh mục": view.get("component_catalog_revision"),
         "Mã khách hàng": view.get("customer_id", ""),
+        "Nhóm sản lượng": curve.get("stratum", ""),
         "Tháng": view["year_month"],
         "Ngày": view.get("date", ""),
         "Phương pháp theo ngày": METHODS.get(
@@ -362,6 +365,7 @@ def export_views(
     include_members: bool = False,
     chart_formats: tuple[str, ...] = (),
     timestamp_adjustments: Iterable[dict] | None = None,
+    timestamp_conflicts: Iterable[dict] | None = None,
     check: Callable[[], None] = lambda: None,
 ) -> Path:
     check()
@@ -422,6 +426,14 @@ def export_views(
                         [row for view in views for row in view["factors"]],
                     ),
                     ("Chất lượng tháng", result.get("quality", [])),
+                    (
+                        "Suy rộng nhóm sản lượng",
+                        [
+                            row
+                            for view in views
+                            for row in view.get("strata_factors", [])
+                        ],
+                    ),
                     (
                         "Suy rộng từng ngày",
                         [
@@ -532,6 +544,11 @@ def export_views(
             ],
             check,
         )
+        strata_factors = [
+            row for view in views for row in view.get("strata_factors", [])
+        ]
+        if strata_factors:
+            write_summary_csv(staging / "strata-factors.csv", strata_factors, check)
         from load_research.methodology import CALCULATIONS
 
         customer_rows = [
@@ -545,6 +562,8 @@ def export_views(
                 "source_name",
                 "source_id",
                 "source_row",
+                "source_instance",
+                "source_sheet",
                 "customer_id",
                 "meter_id",
                 "original_timestamp",
@@ -564,6 +583,40 @@ def export_views(
                         [
                             safe_csv_text(row.get(field, ""))
                             for field in timestamp_fields
+                        ]
+                    )
+
+        if timestamp_conflicts is not None:
+            conflict_fields = (
+                "source_name",
+                "source_id",
+                "source_row",
+                "source_instance",
+                "source_sheet",
+                "customer_id",
+                "industry_code",
+                "meter_id",
+                "start",
+                "minutes",
+                "energy_kwh",
+                "estimated",
+                "quality_known",
+                "repair_blocked",
+                "original_timestamp",
+                "offset_seconds",
+                "selected",
+            )
+            with (staging / "timestamp-conflicts.csv").open(
+                "x", encoding="utf-8-sig", newline=""
+            ) as stream:
+                writer = csv.writer(stream)
+                writer.writerow([field_label(field) for field in conflict_fields])
+                for row in timestamp_conflicts:
+                    check()
+                    writer.writerow(
+                        [
+                            safe_csv_text(translated_value(field, row.get(field, "")))
+                            for field in conflict_fields
                         ]
                     )
 

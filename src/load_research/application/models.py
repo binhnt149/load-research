@@ -32,10 +32,13 @@ class StudyRequest:
     table_delimiter: str = ","
     selected_industries: tuple[str, ...] = ()
     meter_key_policy: str = "trimmed"
+    strata_paths: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.meter_key_policy not in ("legacy", "trimmed"):
             raise ValueError("invalid meter key policy")
+        if len(self.strata_paths) > 1:
+            raise ValueError("only one stratum configuration may be supplied")
         if not self.cmis_paths or not self.mdms_sources:
             raise ValueError("CMIS and MDMS sources are required")
         if any(
@@ -59,6 +62,7 @@ class StudyRequest:
             *(source.path for source in self.mdms_sources),
             *self.billing_paths,
             *self.calendar_paths,
+            *self.strata_paths,
         ]
         return list(dict.fromkeys(Path(name).resolve() for name in names))
 
@@ -77,6 +81,7 @@ class StudyRequest:
             "table_delimiter": self.table_delimiter,
             "selected_industries": list(self.selected_industries),
             "meter_key_policy": self.meter_key_policy,
+            "strata_paths": list(self.strata_paths),
         }
 
     @classmethod
@@ -97,6 +102,7 @@ class StudyRequest:
             "billing_paths",
             "calendar_paths",
             "selected_industries",
+            "strata_paths",
         ):
             copied[name] = tuple(copied.get(name, ()))
         return cls(**copied)
@@ -106,7 +112,7 @@ def load_request(path: Path) -> StudyRequest:
     """Resolve portable source paths relative to the request, never the shell CWD."""
     path = Path(path).resolve()
     payload = json.loads(path.read_text(encoding="utf-8"))
-    for field_name in ("cmis_paths", "billing_paths", "calendar_paths"):
+    for field_name in ("cmis_paths", "billing_paths", "calendar_paths", "strata_paths"):
         payload[field_name] = [
             str((path.parent / source).resolve())
             for source in payload.get(field_name, [])

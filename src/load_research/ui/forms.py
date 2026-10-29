@@ -48,6 +48,8 @@ CMIS_FIELDS = [
     "valid_to",
     "meter_role",
     "sampling_weight",
+    "annual_energy_kwh",
+    "consumption_stratum",
     "year_month",
     "sample_billing_kwh",
     "sample_billing_basis",
@@ -216,7 +218,7 @@ class ExportDialog(QDialog):
         self.xlsx.setChecked(True)
         self.png.setChecked(True)
         self.timestamp_adjustments = QCheckBox(
-            "Kèm nhật ký hiệu chỉnh thời điểm trong kỳ nghiên cứu (có thể lớn)"
+            "Kèm nhật ký hiệu chỉnh và xung đột thời điểm trong kỳ nghiên cứu (có thể lớn)"
         )
         for checkbox in (
             self.xlsx,
@@ -514,6 +516,12 @@ class ConfigForm(QWidget):
                 ("Quy tắc cũ: bù có giới hạn", "legacy"),
             ]
         )
+        self.collision_policy = combo(
+            [
+                ("Ưu tiên thời điểm gần đầu chu kỳ; ghi nhật ký", "prefer_nearest"),
+                ("Dừng khi số liệu trùng khác nhau", "reject"),
+            ]
+        )
         for label, widget in (
             ("Phạm vi đơn vị", self.scope),
             ("Năm-tháng (cách nhau bằng dấu phẩy)", self.periods),
@@ -521,6 +529,7 @@ class ConfigForm(QWidget):
             ("Độ phân giải phân tích", self.resolution),
             ("Thuật toán", self.algorithm),
             ("Hoàn chỉnh dữ liệu VEE", self.vee_completion),
+            ("Xử lý số liệu trùng chu kỳ", self.collision_policy),
         ):
             layout.addRow(label, widget)
         integer_labels = {
@@ -614,6 +623,7 @@ class ConfigForm(QWidget):
         choose(self.resolution, config.interval_minutes)
         choose(self.algorithm, config.algorithm)
         choose(self.vee_completion, config.vee_completion)
+        choose(self.collision_policy, config.collision_policy)
         for name, widget in self.numeric_controls().items():
             widget.setValue(getattr(config, name))
         self.manual_k.setValue(config.manual_k or 0)
@@ -633,6 +643,7 @@ class ConfigForm(QWidget):
             interval_minutes=self.resolution.currentData(),
             algorithm=self.algorithm.currentData(),
             vee_completion=self.vee_completion.currentData(),
+            collision_policy=self.collision_policy.currentData(),
             manual_k=self.manual_k.value() or None,
             eps=float(self.eps.text()) if self.eps.text().strip() else None,
             seed=int(self.seed.text()),
@@ -662,19 +673,20 @@ class ResearchForm(QWidget):
         sources.setVerticalSpacing(12)
         sources.setColumnStretch(0, 1)
         sources.setColumnStretch(1, 1)
-        self.cmis, self.mdms, self.billing, self.calendar_files = [
+        self.cmis, self.mdms, self.billing, self.calendar_files, self.strata = [
             FileList(title)
             for title in (
                 "1. CMIS — tập khách hàng mẫu đã chốt",
                 "2. MDMS — dữ liệu đo chu kỳ",
                 "3. Điện năng thương phẩm toàn ngành",
                 "4. Lịch ngày đặc biệt (tuỳ chọn)",
+                "5. Cấu hình nhóm sản lượng (tuỳ chọn)",
             )
         ]
         for index, (selector, category) in enumerate(
             zip(
-                (self.cmis, self.mdms, self.billing, self.calendar_files),
-                ("cmis", "mdms", "billing", "calendar"),
+                (self.cmis, self.mdms, self.billing, self.calendar_files, self.strata),
+                ("cmis", "mdms", "billing", "calendar", "strata"),
                 strict=True,
             )
         ):
@@ -767,6 +779,7 @@ class ResearchForm(QWidget):
         self.mdms.set_paths(source.path for source in request.mdms_sources)
         self.billing.set_paths(request.billing_paths)
         self.calendar_files.set_paths(request.calendar_paths)
+        self.strata.set_paths(request.strata_paths)
         self.source_options = {
             source.path: source.options for source in request.mdms_sources
         }
@@ -805,6 +818,7 @@ class ResearchForm(QWidget):
             self.table_delimiter.text(),
             self.selected_industries,
             self.meter_key_policy.currentData(),
+            self.strata.paths(),
         )
 
     def edit_source(self) -> None:

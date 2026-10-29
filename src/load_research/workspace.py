@@ -274,7 +274,7 @@ class Workspace:
                 return str(aliases[key])
             return mapping.get(str(Path(path).resolve()), path)
 
-        for key in ("cmis_paths", "billing_paths", "calendar_paths"):
+        for key in ("cmis_paths", "billing_paths", "calendar_paths", "strata_paths"):
             payload[key] = [relocated(path) for path in payload.get(key, [])]
         for source in payload["mdms_sources"]:
             source["path"] = relocated(source["path"])

@@ -38,6 +38,7 @@ class RunConfig:
     max_estimated_fraction: float = 0.1
     min_original_coverage: float = 0.8
     vee_completion: str = "complete"
+    collision_policy: str = "prefer_nearest"
     min_days: tuple[int, ...] = (5, 2, 2, 1)
     min_customers: int = 10
     min_cluster_customers: int = 30
@@ -79,6 +80,8 @@ class RunConfig:
             raise ValueError("unknown clustering algorithm")
         if self.vee_completion not in ("legacy", "complete"):
             raise ValueError("invalid VEE completion policy")
+        if self.collision_policy not in ("reject", "prefer_nearest"):
+            raise ValueError("invalid timestamp collision policy")
         integer_fields = (
             "min_donors",
             "min_customers",
@@ -149,7 +152,9 @@ class RunConfig:
 
     @classmethod
     def from_dict(cls, payload: dict) -> "RunConfig":
-        return cls(**{"vee_completion": "legacy", **payload})
+        return cls(
+            **{"vee_completion": "legacy", "collision_policy": "reject", **payload}
+        )
 
     @property
     def content_hash(self) -> str:

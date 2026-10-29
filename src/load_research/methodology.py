@@ -2,7 +2,7 @@
 
 CALCULATIONS = """# Cách tính kết quả nghiên cứu phụ tải
 
-Phiên bản phương pháp hiển thị: 28/10/2026. Các đường suy rộng là mô hình ước tính,
+Phiên bản phương pháp hiển thị: 29/10/2026. Các đường suy rộng là mô hình ước tính,
 không phải phép đo thực tế của toàn bộ khách hàng. Dữ liệu và tham số của mỗi lần
 nghiên cứu được giữ nguyên; thay tham số phải tạo lần nghiên cứu mới.
 
@@ -48,6 +48,9 @@ MDMS có thể đã chứa số liệu ước tính; “mẫu nguồn trước V
 mọi chu kỳ đều là số đo thực. Nhật ký ghi từng giá trị bù và ngày cho.
 
 ## 3. Biểu đồ đại diện ngành và nhóm hành vi
+
+Công thức α và S dưới đây áp dụng khi không chọn cấu hình nhóm sản lượng.
+Khi có bảng cấu hình, áp dụng hệ số riêng từng tầng theo mục 10.
 
 x[i,t,k] = trung bình điện năng chu kỳ k của các ngày hợp lệ loại t của khách
 hàng i. Đây là trung bình theo khách hàng trước khi cộng mẫu, tránh để khách
@@ -127,7 +130,9 @@ mô hình theo lịch, không thể hiện biến thiên thực tế giữa các
 
 Phương pháp 2 — Giữ biến thiên ngày: D[g,m]=ΣdΣk Q[g,d,k], β[g,m]=A[g,m]/D[g,m].
 Evar[g,d,k]=β[g,m]×Q[g,d,k]. Chỉ tính β khi mọi ngày trong tháng của toàn bộ tập
-mẫu chung đủ điều kiện, không còn giá trị thiếu. Một ngày không đạt làm phương
+mẫu chung đủ điều kiện, không còn giá trị thiếu. Với phân tầng, thay β chung bằng
+hệ số riêng từng tầng và cộng các tầng như mục 10.
+Một ngày không đạt làm phương
 pháp này chưa khả dụng cho cả tháng; có thể chuyển sang phương pháp 1. Không bù
 chỉ nhằm làm cân bằng thương phẩm. D=0,A>0: chưa có mô hình; thiếu A: chưa có mô hình;
 A=D=0: dùng hệ số quy ước 0 để đường vật lý bằng 0, không có hình dạng chuẩn hóa.
@@ -175,10 +180,16 @@ Với nguồn MDMS mới, thời điểm lệch được đưa về đầu kho�
 trong múi giờ khai báo, trước khi quy đổi quy ước đầu/cuối chu kỳ. Ví dụ chu kỳ
 30 phút: 10:32:02 và 10:58 đều về 10:30. Có thể chọn từ chối thời điểm lệch;
 cấu hình nguồn cũ mặc định giữ chế độ từ chối. Các bản ghi trùng sau hiệu chỉnh
-được kiểm tra, dữ liệu trùng khác nhau bị từ chối. Nhật ký trong dự án lưu tệp,
+được kiểm tra theo chính sách xung đột mô tả bên dưới. Nhật ký trong dự án lưu tệp,
 dòng, mốc nguồn, mốc sau hiệu chỉnh, độ lệch và các cột ranh giới nguồn nếu có.
 Tab Kết quả xem tối đa 1.000 dòng; chọn xuất nhật ký để nhận đầy đủ các hiệu chỉnh
 thuộc kỳ nghiên cứu trong timestamp-adjustments.csv. Tệp này có thể rất lớn.
+
+Nếu nhiều giá trị khác nhau của cùng công tơ được đưa vào cùng chu kỳ, chế độ mới
+ưu tiên bản ghi có mốc nguồn gần đầu khoảng nhất (mốc đúng được ưu tiên trước).
+Các bản ghi được chọn và không chọn đều có nhật ký và cảnh báo. Nếu các giá trị
+khác nhau cùng gần nhất, ứng dụng dừng để xử lý thủ công. Chế độ cũ dừng khi có
+bất kỳ xung đột nào. Tuỳ chọn xuất nhật ký tạo thêm timestamp-conflicts.csv.
 
 ## 9. Khoảng ngày, danh mục thành phần và từng khách hàng
 
@@ -241,4 +252,36 @@ rồi Nạp khoảng ngày/Nạp khách hàng. Đổi đơn vị/chu kỳ/chuẩ
 chọn cũ bị bỏ qua. Xuất lựa chọn tạo báo cáo đúng khoảng, kèm customer-vee.csv khi
 tra cứu khách hàng. Bộ chọn Nhóm được ẩn; đường đóng góp và nhãn nhóm vẫn còn,
 nút Đặt tên nhóm… mở danh sách nhóm khi chọn một ngành và một loại ngày.
+
+## 10. Suy rộng theo nhóm sản lượng khách hàng
+
+Tuỳ chọn nhập bảng cấu hình ngành–nhóm kích hoạt phương pháp phân tầng. CMIS cần
+annual_energy_kwh hoặc consumption_stratum (A–E); nếu cung cấp cả hai thì phải
+khớp. Nhóm A: [501,10.000), B: [10.000,100.000), C: [100.000,1.000.000),
+D: [1.000.000,10.000.000), E: từ 10.000.000 kWh/năm. Dưới 501 hoặc thiếu cơ sở
+không được phân nhóm; khách hàng đó bị loại khỏi tập mẫu theo tầng và ghi lý do.
+Bảng cấu hình được hiểu là liệt kê đầy đủ các nhóm có khách hàng; nếu khách hàng
+mẫu có nhóm không có trong bảng thì ngành bị báo thiếu cấu hình, không suy rộng.
+
+R[g,h] là tổng điện năng tham chiếu ở bảng cấu hình ngành g, nhóm h; các R cùng
+ngành phải cùng kỳ và cơ sở. A[g,m] là thương phẩm toàn ngành trong tháng m.
+Ahat[g,h,m] = A[g,m] × R[g,h] / Σh R[g,h]. Đây là phân bổ **ước tính**, giả định
+cơ cấu điện năng của kỳ tham chiếu đại diện cho từng tháng, không phải thương
+phẩm đo thực tế của từng tầng. Tổng Ahat bằng A; tổng R phải dương. Thống kê số
+khách hàng, trung bình và độ lệch chuẩn được lưu theo nguồn để truy vết, không tự
+dùng như trọng số thiết kế mẫu hoặc bằng chứng độ chính xác.
+
+Tính F[g,h,t,k] từ khách hàng đủ điều kiện của từng tầng h bằng cùng phương pháp
+mẫu ở mục 3. S[g,h,m] = Σt N[t] Σk F[g,h,t,k]; α[g,h,m] = Ahat[g,h,m]/S[g,h,m].
+E[g,t,k] = Σh α[g,h,m] F[g,h,t,k]. Mỗi tầng có α riêng; đường chung và đóng góp
+nhóm hành vi là tổng các tầng sau suy rộng. Không nhân chung một α cho toàn ngành.
+Thiếu thương phẩm, hình dạng, mẫu của một tầng có trong cấu hình, hoặc mẫu có
+nhóm không có trong cấu hình: tổng ngành chưa đầy đủ, không thay tầng thiếu bằng 0.
+Ngưỡng mẫu vẫn áp dụng; tầng quá ít mẫu chỉ để xem tham khảo. Xem đường tầng trên
+biểu đồ, bảng Suy rộng nhóm sản lượng và tệp strata-factors.csv khi xuất.
+
+Phương pháp giữ biến thiên ngày cũng dùng riêng D[g,h,m] là tổng mẫu sau VEE từng
+ngày của tầng và β[g,h,m] = Ahat[g,h,m]/D[g,h,m]; cộng β×Q của các tầng. Chỉ có
+chuỗi ngành khi các tầng đều có đủ ngày hợp lệ. Phương pháp ngày đại diện dùng
+đường ngành đã cộng α từng tầng. Không dùng một β chung thay cho các hệ số tầng.
 """

@@ -24,6 +24,14 @@ FIELD_HELP = {
     "meter_id": "Mã công tơ ghép với CMIS; không ghép bằng tên khách hàng.",
     "organization_code": "Mã đơn vị, khớp phạm vi nghiên cứu.",
     "sampling_weight": "Trọng số dương đã được chốt; dùng 1 nếu không có trọng số riêng.",
+    "annual_energy_kwh": "Điện năng năm kWh của khách hàng; dùng để phân nhóm A–E khi chọn nghiên cứu theo tầng.",
+    "consumption_stratum": "Nhóm sản lượng A–E đã xác định; nếu có điện năng năm thì hai giá trị phải khớp.",
+    "Nhóm sản lượng": "Nhóm A, B, C, D hoặc E của quần thể ngành.",
+    "Số lượng khách hàng": "Số khách hàng trong tầng, là số nguyên dương.",
+    "Tổng Sản lượng": "Tổng điện năng tham chiếu của tầng, cùng kỳ và đơn vị giữa các tầng trong ngành.",
+    "Trung bình sản lượng\n(Tổng sản lượng/số lượng khách hàng)": "Điện năng trung bình của khách hàng trong tầng.",
+    "Độ lệch chuẩn": "Độ lệch chuẩn điện năng của khách hàng trong tầng.",
+    "Độ lệch chuẩn/Trung bình sản lượng": "Hệ số biến thiên của tầng.",
     "timestamp": "ISO 8601 theo giờ địa phương; ví dụ dùng dấu đầu chu kỳ.",
     "value": "Điện năng kWh trong chu kỳ; thiếu để trống, số 0 là số đo hợp lệ.",
     "source_quality_flag": "actual = đo gốc; estimated = ước lượng; missing/invalid = thiếu.",
@@ -94,6 +102,8 @@ TEMPLATES = {
                 meter_id=f"M{n:06}",
                 organization_code="NPC",
                 sampling_weight=1,
+                annual_energy_kwh=5000 if n == 1 else 50000,
+                consumption_stratum="A" if n == 1 else "B",
             )
             for n in (1, 2)
         ),
@@ -143,6 +153,31 @@ TEMPLATES = {
         ),
         "Tuỳ chọn. Chỉ khai báo ngày cần ghi đè. Ví dụ không phải lịch lễ đã xác nhận; "
         "hãy thay bằng lịch đã chốt của đợt nghiên cứu.",
+    ),
+    "strata": InputTemplate(
+        "Cấu hình nhóm sản lượng theo ngành",
+        "strata",
+        (
+            {
+                "Mã ngành nghề": "01",
+                "Nhóm sản lượng": "A",
+                "Số lượng khách hàng": 10,
+                "Tổng Sản lượng": 50000,
+                "Trung bình sản lượng\n(Tổng sản lượng/số lượng khách hàng)": 5000,
+                "Độ lệch chuẩn": 1000,
+                "Độ lệch chuẩn/Trung bình sản lượng": 0.2,
+            },
+            {
+                "Mã ngành nghề": "01",
+                "Nhóm sản lượng": "B",
+                "Số lượng khách hàng": 20,
+                "Tổng Sản lượng": 1000000,
+                "Trung bình sản lượng\n(Tổng sản lượng/số lượng khách hàng)": 50000,
+                "Độ lệch chuẩn": 5000,
+                "Độ lệch chuẩn/Trung bình sản lượng": 0.1,
+            },
+        ),
+        "Mỗi dòng là một ngành–nhóm. Tổng tham chiếu dùng để ước phân bổ thương phẩm tháng; thay dữ liệu minh hoạ.",
     ),
 }
 for _slots in (24, 48, 96):

@@ -80,6 +80,48 @@ def expand_daily(
         reason = "zero_sample_with_positive_billing"
     else:
         factor = billing / denominator if denominator else 0.0
+    strata_factors: dict[str, float] = {}
+    stratified = cell.get("stratification") if method == "variation" else None
+    stratified_values = None
+    if stratified is not None:
+        factor = None
+        expected = stratified.get("strata", {})
+        parts = daily.get("strata", {})
+        if (
+            computed.get("status") in {"missing_stratum_config", "incomplete_strata"}
+            or not expected
+            or set(expected) - set(parts)
+        ):
+            reason = "incomplete_cohort_days"
+        else:
+            vectors = []
+            reason = None
+            for key, item in expected.items():
+                part = parts[key]
+                values = np.asarray(part["processed"], dtype=float)
+                target = item.get("allocated_billing_kwh")
+                if (
+                    part["dates"] != dates
+                    or part["day_types"] != kinds
+                    or values.shape != processed.shape
+                    or not part["cohort_size"]
+                    or not all(part["eligible"])
+                    or not np.isfinite(values).all()
+                    or target is None
+                ):
+                    reason = "incomplete_cohort_days"
+                    break
+                subtotal = float(values.sum())
+                if subtotal == 0 and target > 0:
+                    reason = "zero_sample_with_positive_billing"
+                    break
+                multiplier = target / subtotal if subtotal else 0.0
+                strata_factors[key] = multiplier
+                vectors.append(values * multiplier)
+            if reason is None:
+                stratified_values = np.stack(vectors).sum(axis=0)
+            else:
+                strata_factors = {}
     raw_expanded: list[np.ndarray | None] = []
     for index, kind in enumerate(kinds):
         if method == "representative":
@@ -88,7 +130,11 @@ def expand_daily(
                 None if values is None else np.asarray(values, dtype=float)
             )
         else:
-            raw_expanded.append(None if factor is None else processed[index] * factor)
+            raw_expanded.append(
+                (None if stratified_values is None else stratified_values[index])
+                if stratified is not None
+                else (None if factor is None else processed[index] * factor)
+            )
 
     def convert(values):
         if values is None:
@@ -114,6 +160,7 @@ def expand_daily(
         "expanded": [convert(row) for row in raw_expanded],
         "method": method,
         "factor": factor if method == "variation" else computed.get("alpha"),
+        "strata_factors": strata_factors,
         "reason": reason
         if method == "variation"
         else (None if complete else "missing_profile"),

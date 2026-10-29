@@ -105,6 +105,28 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
 
     for code in codes:
         cell = cells.get(code)
+        if cell is not None:
+            for stratum, item in (
+                cell.get("stratification", {}).get("strata", {}).items()
+            ):
+                stratum_curves = item["result"].get(key, {})
+                vector = (
+                    sum(
+                        _vector(stratum_curves[kind], 1440 // source)
+                        * counts[kind]
+                        / days
+                        for kind in kinds
+                    )
+                    if days and all(kind in stratum_curves for kind in kinds)
+                    else None
+                )
+                append(
+                    "stratum",
+                    f"{code} · Nhóm sản lượng {stratum}",
+                    vector,
+                    industry_code=code,
+                    stratum=stratum,
+                )
         curves = {} if cell is None else cell["result"].get(key, {})
         absent = [kind for kind in kinds if kind not in curves]
         if cell is None or absent or not days:
@@ -229,6 +251,26 @@ def build_result_view(result: dict, selection: ResultSelection) -> dict:
         ),
         "missing": missing,
         "factors": factors,
+        "strata_factors": [
+            {
+                "industry_code": code,
+                "year_month": selection.period,
+                "stratum": stratum,
+                "method": "reference_energy_share",
+                "population_count": item["population_count"],
+                "reference_energy_kwh": item["reference_energy_kwh"],
+                "allocated_billing_kwh": item["allocated_billing_kwh"],
+                "cohort_size": item["cohort_size"],
+                "alpha": item["result"]["alpha"],
+                "status": item["result"]["status"],
+            }
+            for code in codes
+            if code in cells
+            for stratum, item in cells[code]
+            .get("stratification", {})
+            .get("strata", {})
+            .items()
+        ],
         "billing_kwh": sum(billing)
         if len(billing) == len(codes) and all(v is not None for v in billing)
         else None,
@@ -297,11 +339,18 @@ def build_daily_view(
         for cell in result["cells"]
         if cell["year_month"] == selection.period
     }
+    daily_strata: dict[tuple[str, str], float] = {}
     for code in view["industry_codes"]:
         values = None
         details = daily.get(code)
         if details and code in cells and day in details["dates"]:
             expanded = expand_daily(cells[code], details, selection, method=method)
+            daily_strata.update(
+                {
+                    (code, group): value
+                    for group, value in expanded.get("strata_factors", {}).items()
+                }
+            )
             index = details["dates"].index(day)
             source_rows.append(expanded["source"][index])
             processed_rows.append(expanded["processed"][index])
@@ -388,6 +437,16 @@ def build_daily_view(
         "date": day,
         "method": method,
         "daily_factors": factors,
+        "strata_factors": [
+            {
+                **row,
+                "daily_factor": daily_strata.get(
+                    (row["industry_code"], row["stratum"])
+                ),
+                "daily_method": method,
+            }
+            for row in view.get("strata_factors", [])
+        ],
         "day_types": [kind],
         "missing": missing,
         "complete": overall is not None and not missing,
